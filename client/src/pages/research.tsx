@@ -149,19 +149,6 @@ export default function ResearchPage() {
             <p className="text-xl text-blue-100 max-w-3xl mx-auto" data-testid="text-research-description">
               Explore our comprehensive research portfolio and discover the cutting-edge work we're doing across various scientific domains.
             </p>
-            {isAdmin && (
-              <div className="mt-8">
-                <Button 
-                  variant="secondary" 
-                  size="lg" 
-                  onClick={() => setShowAddForm(!showAddForm)}
-                  data-testid="button-add-publication"
-                >
-                  <Plus className="h-5 w-5 mr-2" />
-                  {showAddForm ? "취소" : "논문 추가"}
-                </Button>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -412,11 +399,24 @@ export default function ResearchPage() {
         )}
 
         {/* Research Areas */}
-        {mainAreas.length > 0 && (
-          <div className="mb-20">
-            <h2 className="text-3xl font-bold text-gray-900 mb-10 text-center" data-testid="text-research-areas-title">
+        <div className="mb-20">
+          <div className="flex justify-between items-center mb-10">
+            <h2 className="text-3xl font-bold text-gray-900 text-center flex-1" data-testid="text-research-areas-title">
               Research Areas
             </h2>
+            {isAdmin && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {/* Add research area logic here */}}
+                data-testid="button-add-research-area"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                연구분야 추가
+              </Button>
+            )}
+          </div>
+          {mainAreas.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {mainAreas.map((area) => {
                 const subAreas = getSubAreas(area.id);
@@ -448,15 +448,42 @@ export default function ResearchPage() {
                 );
               })}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500 mb-4">아직 연구분야가 등록되지 않았습니다.</p>
+              {isAdmin && (
+                <Button 
+                  variant="outline"
+                  onClick={() => {/* Add research area logic here */}}
+                  data-testid="button-add-first-research-area"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  첫 번째 연구분야 추가
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Publications */}
-        {publications.length > 0 && (
-          <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-10 text-center" data-testid="text-publications-title">
+        <div>
+          <div className="flex justify-between items-center mb-10">
+            <h2 className="text-3xl font-bold text-gray-900 text-center flex-1" data-testid="text-publications-title">
               Recent Publications
             </h2>
+            {isAdmin && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowAddForm(!showAddForm)}
+                data-testid="button-add-publication-section"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                {showAddForm ? "취소" : "논문 추가"}
+              </Button>
+            )}
+          </div>
+          {publications.length > 0 ? (
             <div className="space-y-6">
               {publications.map((publication) => (
                 <Card
@@ -479,14 +506,14 @@ export default function ResearchPage() {
                         </span>
                       </div>
                       <div className="flex space-x-2">
-                        {publication.doi && (
+                        {publication.pdfUrl && (
                           <Button
                             variant="ghost"
                             size="sm"
                             asChild
-                            data-testid={`button-publication-link-${publication.id}`}
+                            data-testid={`button-publication-pdf-${publication.id}`}
                           >
-                            <a href={`https://doi.org/${publication.doi}`} target="_blank" rel="noopener noreferrer">
+                            <a href={publication.pdfUrl} target="_blank" rel="noopener noreferrer">
                               <ExternalLink className="h-4 w-4" />
                             </a>
                           </Button>
@@ -504,9 +531,9 @@ export default function ResearchPage() {
                         {publication.authors.map(author => author.name).join(", ")}
                       </p>
                     )}
-                    {publication.venue && (
+                    {(publication.journal || publication.conference) && (
                       <p className="text-gray-700 mb-4" data-testid={`text-publication-venue-${publication.id}`}>
-                        <strong>{publication.venue}</strong>
+                        <strong>{publication.journal || publication.conference}</strong>
                       </p>
                     )}
                     {publication.abstract && (
@@ -518,33 +545,24 @@ export default function ResearchPage() {
                 </Card>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Empty States */}
-        {mainAreas.length === 0 && publications.length === 0 && (
-          <div className="text-center py-16">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Brain className="h-12 w-12 text-gray-400" />
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500 mb-4">아직 논문이 등록되지 않았습니다.</p>
+              {isAdmin && (
+                <Button 
+                  variant="outline"
+                  onClick={() => setShowAddForm(true)}
+                  data-testid="button-add-first-publication"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  첫 번째 논문 추가
+                </Button>
+              )}
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2" data-testid="text-no-research-title">
-              No Research Content Yet
-            </h3>
-            <p className="text-gray-600 max-w-md mx-auto mb-8" data-testid="text-no-research-description">
-              Research areas and publications will be displayed here once they are added to the system.
-            </p>
-            {isAuthenticated && (
-              <div className="space-x-4">
-                <Link href="/admin">
-                  <Button data-testid="button-add-first-research">
-                    <Plus className="h-5 w-5 mr-2" />
-                    Add Research Areas
-                  </Button>
-                </Link>
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
+
+
       </div>
     </div>
   );
