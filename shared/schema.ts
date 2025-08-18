@@ -177,6 +177,7 @@ export const labInfo = pgTable("lab_info", {
   piEmail: text("pi_email"),
   piPhone: text("pi_phone"),
   piPhoto: text("pi_photo"),
+  piBio: text("pi_bio"),
   description: text("description"),
   address: text("address").notNull(),
   latitude: text("latitude"),

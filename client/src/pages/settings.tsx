@@ -21,6 +21,7 @@ const labInfoSchema = z.object({
   piEmail: z.string().email().optional().or(z.literal("")),
   piPhone: z.string().optional(),
   piPhoto: z.string().url().optional().or(z.literal("")),
+  piBio: z.string().optional(),
   description: z.string().optional(),
   address: z.string().min(1, "Address is required"),
   latitude: z.string().optional(),
@@ -58,6 +59,7 @@ export default function Settings() {
       piEmail: "",
       piPhone: "",
       piPhoto: "",
+      piBio: "",
       description: "",
       address: "",
       latitude: "",
@@ -85,6 +87,7 @@ export default function Settings() {
         piEmail: labInfo.piEmail || "",
         piPhone: labInfo.piPhone || "",
         piPhoto: labInfo.piPhoto || "",
+        piBio: labInfo.piBio || "",
         description: labInfo.description || "",
         address: labInfo.address || "",
         latitude: labInfo.latitude || "",
@@ -306,19 +309,45 @@ export default function Settings() {
                     />
                   </div>
 
-                  <FormField
-                    control={form.control}
-                    name="researchFocus"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Research Focus</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., Machine Learning, AI Ethics" {...field} data-testid="input-research-focus" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="md:col-span-2">
+                    <FormField
+                      control={form.control}
+                      name="researchFocus"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Research Focus</FormLabel>
+                          <FormControl>
+                            <div className="min-h-[150px]">
+                              <ReactQuill
+                                theme="snow"
+                                value={field.value || ""}
+                                onChange={field.onChange}
+                                modules={{
+                                  toolbar: [
+                                    [{ 'header': [3, 4, false] }],
+                                    ['bold', 'italic', 'underline'],
+                                    [{ 'color': [] }],
+                                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                    ['link'],
+                                    ['clean']
+                                  ],
+                                }}
+                                formats={[
+                                  'header',
+                                  'bold', 'italic', 'underline',
+                                  'color',
+                                  'list', 'bullet',
+                                  'link'
+                                ]}
+                                placeholder="e.g., Machine Learning, AI Ethics, Natural Language Processing..."
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   <FormField
                     control={form.control}
@@ -362,19 +391,41 @@ export default function Settings() {
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="piTitle"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Title *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Professor, PhD" {...field} data-testid="input-pi-title" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="md:col-span-2">
+                    <FormField
+                      control={form.control}
+                      name="piTitle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Title *</FormLabel>
+                          <FormControl>
+                            <div className="min-h-[100px]">
+                              <ReactQuill
+                                theme="snow"
+                                value={field.value || ""}
+                                onChange={field.onChange}
+                                modules={{
+                                  toolbar: [
+                                    [{ 'header': [4, 5, false] }],
+                                    ['bold', 'italic', 'underline'],
+                                    [{ 'color': [] }],
+                                    ['clean']
+                                  ],
+                                }}
+                                formats={[
+                                  'header',
+                                  'bold', 'italic', 'underline',
+                                  'color'
+                                ]}
+                                placeholder="Professor, PhD in Computer Science"
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   <FormField
                     control={form.control}
@@ -421,50 +472,48 @@ export default function Settings() {
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="piBio"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Bio</FormLabel>
-                        <FormControl>
-                          <div className="min-h-[200px]">
-                            <ReactQuill
-                              theme="snow"
-                              value={field.value || ""}
-                              onChange={field.onChange}
-                              modules={{
-                                toolbar: [
-                                  [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-                                  ['bold', 'italic', 'underline', 'strike'],
-                                  [{ 'color': [] }, { 'background': [] }],
-                                  [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                                  [{ 'indent': '-1'}, { 'indent': '+1' }],
-                                  [{ 'align': [] }],
-                                  ['link'],
-                                  ['clean']
-                                ],
-                              }}
-                              formats={[
-                                'header',
-                                'bold', 'italic', 'underline', 'strike',
-                                'color', 'background',
-                                'list', 'bullet',
-                                'indent',
-                                'align',
-                                'link'
-                              ]}
-                              placeholder="Brief biography of the principal investigator..."
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
                   <div className="md:col-span-2">
-                    {/* Empty div to maintain grid layout */}
+                    <FormField
+                      control={form.control}
+                      name="piBio"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Biography</FormLabel>
+                          <FormControl>
+                            <div className="min-h-[200px]">
+                              <ReactQuill
+                                theme="snow"
+                                value={field.value || ""}
+                                onChange={field.onChange}
+                                modules={{
+                                  toolbar: [
+                                    [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                                    ['bold', 'italic', 'underline', 'strike'],
+                                    [{ 'color': [] }, { 'background': [] }],
+                                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                    [{ 'indent': '-1'}, { 'indent': '+1' }],
+                                    [{ 'align': [] }],
+                                    ['link'],
+                                    ['clean']
+                                  ],
+                                }}
+                                formats={[
+                                  'header',
+                                  'bold', 'italic', 'underline', 'strike',
+                                  'color', 'background',
+                                  'list', 'bullet',
+                                  'indent',
+                                  'align',
+                                  'link'
+                                ]}
+                                placeholder="Brief biography of the principal investigator..."
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -603,7 +652,29 @@ export default function Settings() {
                             Office Hours
                           </FormLabel>
                           <FormControl>
-                            <Input placeholder="Mon-Fri 9:00 AM - 5:00 PM" {...field} data-testid="input-office-hours" />
+                            <div className="min-h-[120px]">
+                              <ReactQuill
+                                theme="snow"
+                                value={field.value || ""}
+                                onChange={field.onChange}
+                                modules={{
+                                  toolbar: [
+                                    [{ 'header': [5, 6, false] }],
+                                    ['bold', 'italic', 'underline'],
+                                    [{ 'color': [] }],
+                                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                    ['clean']
+                                  ],
+                                }}
+                                formats={[
+                                  'header',
+                                  'bold', 'italic', 'underline',
+                                  'color',
+                                  'list', 'bullet'
+                                ]}
+                                placeholder="Mon-Fri 9:00 AM - 5:00 PM, Available by appointment"
+                              />
+                            </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
