@@ -24,6 +24,7 @@ export default function Header() {
     { name: "Home", href: "/" },
     { name: "Members", href: "/members" },
     { name: "Research & Publication", href: "/research" },
+    { name: "News", href: "/news" },
     { name: "Access", href: "/access" },
   ];
 

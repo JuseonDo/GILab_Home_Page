@@ -1,11 +1,14 @@
 import { db } from './db';
-import { users, researchProjects, teamMembers, publications, authors } from '@shared/schema';
+import { users, researchProjects, teamMembers, publications, authors, news, members, researchAreas } from '@shared/schema';
 import type { 
   User, InsertUser, LoginUser, 
   ResearchProject, InsertResearchProject, 
   TeamMember, InsertTeamMember, 
   Publication, InsertPublication,
-  Author, InsertAuthor
+  Author, InsertAuthor,
+  News, InsertNews,
+  Member, InsertMember,
+  ResearchArea, InsertResearchArea
 } from '@shared/schema';
 import { eq, desc, and } from 'drizzle-orm';
 import { hashPassword, verifyPassword } from './auth';
@@ -33,6 +36,30 @@ export interface IStorage {
   getAllPublicationsWithAuthors(): Promise<(Publication & { authors: Author[] })[]>;
   getPublicationsByYear(year: string): Promise<(Publication & { authors: Author[] })[]>;
   createPublication(publication: InsertPublication, authorId: string, authorsList: InsertAuthor[]): Promise<Publication>;
+  
+  // News management
+  getAllNews(): Promise<News[]>;
+  getRecentNews(limit?: number): Promise<News[]>;
+  getNewsById(id: string): Promise<News | undefined>;
+  createNews(newsItem: InsertNews, authorId: string): Promise<News>;
+  updateNews(id: string, newsItem: Partial<InsertNews>): Promise<News | undefined>;
+  deleteNews(id: string): Promise<boolean>;
+  
+  // Members management
+  getAllMembers(): Promise<Member[]>;
+  getMembersByDegreeLevel(): Promise<{ masters: Member[], bachelors: Member[], phd: Member[], other: Member[] }>;
+  getMemberById(id: string): Promise<Member | undefined>;
+  createMember(member: InsertMember): Promise<Member>;
+  updateMember(id: string, member: Partial<InsertMember>): Promise<Member | undefined>;
+  deleteMember(id: string): Promise<boolean>;
+  
+  // Research Areas management
+  getAllResearchAreas(): Promise<ResearchArea[]>;
+  getResearchAreasByParent(parentId?: string): Promise<ResearchArea[]>;
+  getResearchAreaById(id: string): Promise<ResearchArea | undefined>;
+  createResearchArea(area: InsertResearchArea): Promise<ResearchArea>;
+  updateResearchArea(id: string, area: Partial<InsertResearchArea>): Promise<ResearchArea | undefined>;
+  deleteResearchArea(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -190,6 +217,141 @@ export class DatabaseStorage implements IStorage {
     }
 
     return publication;
+  }
+
+  // News management
+  async getAllNews(): Promise<News[]> {
+    return db.select().from(news)
+      .where(eq(news.isPublished, true))
+      .orderBy(desc(news.publishedAt));
+  }
+
+  async getRecentNews(limit: number = 5): Promise<News[]> {
+    return db.select().from(news)
+      .where(eq(news.isPublished, true))
+      .orderBy(desc(news.publishedAt))
+      .limit(limit);
+  }
+
+  async getNewsById(id: string): Promise<News | undefined> {
+    const [newsItem] = await db.select().from(news).where(eq(news.id, id));
+    return newsItem;
+  }
+
+  async createNews(newsData: InsertNews, authorId: string): Promise<News> {
+    const [newsItem] = await db
+      .insert(news)
+      .values({
+        ...newsData,
+        authorId,
+      })
+      .returning();
+    return newsItem;
+  }
+
+  async updateNews(id: string, newsData: Partial<InsertNews>): Promise<News | undefined> {
+    const [newsItem] = await db
+      .update(news)
+      .set({ ...newsData, updatedAt: new Date() })
+      .where(eq(news.id, id))
+      .returning();
+    return newsItem;
+  }
+
+  async deleteNews(id: string): Promise<boolean> {
+    const [deletedNews] = await db.delete(news).where(eq(news.id, id)).returning();
+    return !!deletedNews;
+  }
+
+  // Members management
+  async getAllMembers(): Promise<Member[]> {
+    return db.select().from(members)
+      .where(eq(members.status, "current"))
+      .orderBy(members.order);
+  }
+
+  async getMembersByDegreeLevel(): Promise<{ masters: Member[], bachelors: Member[], phd: Member[], other: Member[] }> {
+    const allMembers = await this.getAllMembers();
+    
+    return {
+      masters: allMembers.filter(m => m.degree.startsWith("M")),
+      bachelors: allMembers.filter(m => m.degree.startsWith("B")),
+      phd: allMembers.filter(m => m.degree.toLowerCase().includes("phd")),
+      other: allMembers.filter(m => !m.degree.startsWith("M") && !m.degree.startsWith("B") && !m.degree.toLowerCase().includes("phd"))
+    };
+  }
+
+  async getMemberById(id: string): Promise<Member | undefined> {
+    const [member] = await db.select().from(members).where(eq(members.id, id));
+    return member;
+  }
+
+  async createMember(memberData: InsertMember): Promise<Member> {
+    const [member] = await db
+      .insert(members)
+      .values(memberData)
+      .returning();
+    return member;
+  }
+
+  async updateMember(id: string, memberData: Partial<InsertMember>): Promise<Member | undefined> {
+    const [member] = await db
+      .update(members)
+      .set({ ...memberData, updatedAt: new Date() })
+      .where(eq(members.id, id))
+      .returning();
+    return member;
+  }
+
+  async deleteMember(id: string): Promise<boolean> {
+    const [deletedMember] = await db.delete(members).where(eq(members.id, id)).returning();
+    return !!deletedMember;
+  }
+
+  // Research Areas management
+  async getAllResearchAreas(): Promise<ResearchArea[]> {
+    return db.select().from(researchAreas)
+      .where(eq(researchAreas.isActive, true))
+      .orderBy(researchAreas.order);
+  }
+
+  async getResearchAreasByParent(parentId?: string): Promise<ResearchArea[]> {
+    if (parentId) {
+      return db.select().from(researchAreas)
+        .where(and(eq(researchAreas.parentId, parentId), eq(researchAreas.isActive, true)))
+        .orderBy(researchAreas.order);
+    } else {
+      return db.select().from(researchAreas)
+        .where(and(eq(researchAreas.parentId, null), eq(researchAreas.isActive, true)))
+        .orderBy(researchAreas.order);
+    }
+  }
+
+  async getResearchAreaById(id: string): Promise<ResearchArea | undefined> {
+    const [area] = await db.select().from(researchAreas).where(eq(researchAreas.id, id));
+    return area;
+  }
+
+  async createResearchArea(areaData: InsertResearchArea): Promise<ResearchArea> {
+    const [area] = await db
+      .insert(researchAreas)
+      .values(areaData)
+      .returning();
+    return area;
+  }
+
+  async updateResearchArea(id: string, areaData: Partial<InsertResearchArea>): Promise<ResearchArea | undefined> {
+    const [area] = await db
+      .update(researchAreas)
+      .set({ ...areaData, updatedAt: new Date() })
+      .where(eq(researchAreas.id, id))
+      .returning();
+    return area;
+  }
+
+  async deleteResearchArea(id: string): Promise<boolean> {
+    const [deletedArea] = await db.delete(researchAreas).where(eq(researchAreas.id, id)).returning();
+    return !!deletedArea;
   }
 }
 
