@@ -188,12 +188,7 @@ export default function PublicationSlider({ publications }: PublicationSliderPro
                     </div>
                   </div>
                   
-                  {/* Hover indicator */}
-                  <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-lg">
-                      <ExternalLink className="h-4 w-4 text-blue-600" />
-                    </div>
-                  </div>
+
                   
                   {/* Abstract and PDF Section */}
                   {publication.abstract && (
