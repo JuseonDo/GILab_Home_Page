@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Linkedin, Mail, ExternalLink, Plus, X } from "lucide-react";
+import { Linkedin, Mail, ExternalLink, Plus, X, User, Phone, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Link } from "wouter";
 import type { Member } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,13 +28,24 @@ const memberSchema = z.object({
   labDuration: z.string().min(1, "연구실 재학기간을 입력해주세요"),
 });
 
+const professorSchema = z.object({
+  principalInvestigator: z.string().min(1, "교수님 이름을 입력해주세요"),
+  piTitle: z.string().min(1, "직책을 입력해주세요"),
+  piEmail: z.string().email().optional().or(z.literal("")),
+  piPhone: z.string().optional(),
+  piPhoto: z.string().url().optional().or(z.literal("")),
+  description: z.string().optional(),
+});
+
 type MemberFormData = z.infer<typeof memberSchema>;
+type ProfessorFormData = z.infer<typeof professorSchema>;
 
 export default function MembersPage() {
   const { isAuthenticated, isAdmin } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showEditProfessor, setShowEditProfessor] = useState(false);
   
   const { data: membersByLevel, isLoading } = useQuery<{
     masters: Member[];
@@ -49,6 +61,11 @@ export default function MembersPage() {
     },
   });
 
+  // Fetch lab info for professor information
+  const { data: labInfo, isLoading: labInfoLoading } = useQuery({
+    queryKey: ["/api/lab-info"],
+  });
+
   const form = useForm<MemberFormData>({
     resolver: zodResolver(memberSchema),
     defaultValues: {
@@ -61,6 +78,32 @@ export default function MembersPage() {
       labDuration: "",
     },
   });
+
+  const professorForm = useForm<ProfessorFormData>({
+    resolver: zodResolver(professorSchema),
+    defaultValues: {
+      principalInvestigator: "",
+      piTitle: "",
+      piEmail: "",
+      piPhone: "",
+      piPhoto: "",
+      description: "",
+    },
+  });
+
+  // Set professor form values when labInfo is loaded
+  useEffect(() => {
+    if (labInfo && !labInfoLoading) {
+      professorForm.reset({
+        principalInvestigator: labInfo.principalInvestigator || "",
+        piTitle: labInfo.piTitle || "",
+        piEmail: labInfo.piEmail || "",
+        piPhone: labInfo.piPhone || "",
+        piPhoto: labInfo.piPhoto || "",
+        description: labInfo.description || "",
+      });
+    }
+  }, [labInfo, labInfoLoading]);
 
   const createMemberMutation = useMutation({
     mutationFn: (data: MemberFormData) => {
@@ -84,8 +127,33 @@ export default function MembersPage() {
     },
   });
 
+  const updateProfessorMutation = useMutation({
+    mutationFn: (data: ProfessorFormData) => {
+      return apiRequest("PUT", "/api/lab-info", data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "교수님 정보 수정 완료",
+        description: "교수님 정보가 성공적으로 수정되었습니다.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/lab-info"] });
+      setShowEditProfessor(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "교수님 정보 수정 실패",
+        description: error.message || "교수님 정보 수정 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = (data: MemberFormData) => {
     createMemberMutation.mutate(data);
+  };
+
+  const onProfessorSubmit = (data: ProfessorFormData) => {
+    updateProfessorMutation.mutate(data);
   };
 
   const MemberCard = ({ member }: { member: Member }) => (
@@ -133,7 +201,7 @@ export default function MembersPage() {
     </Card>
   );
 
-  if (isLoading) {
+  if (isLoading || labInfoLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
@@ -188,6 +256,83 @@ export default function MembersPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        {/* Professor Section - Main, prominently displayed */}
+        {labInfo && (
+          <div className="mb-12">
+            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 shadow-lg">
+              <CardHeader className="pb-4">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold text-gray-900">지도교수</h2>
+                  {isAdmin && (
+                    <Button
+                      onClick={() => setShowEditProfessor(true)}
+                      data-testid="button-edit-professor"
+                      variant="outline"
+                      className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      정보 수정
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-3 gap-6 items-center">
+                  <div className="flex justify-center">
+                    {labInfo.piPhoto ? (
+                      <img
+                        src={labInfo.piPhoto}
+                        alt={labInfo.principalInvestigator}
+                        data-testid="img-professor-photo"
+                        className="w-40 h-40 rounded-full object-cover border-4 border-white shadow-lg"
+                      />
+                    ) : (
+                      <div className="w-40 h-40 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500 flex items-center justify-center border-4 border-white shadow-lg">
+                        <User className="h-20 w-20 text-white" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="md:col-span-2 space-y-4">
+                    <div>
+                      <h3 className="text-3xl font-bold text-gray-900 mb-2" data-testid="text-professor-name">
+                        {labInfo.principalInvestigator}
+                      </h3>
+                      <p className="text-lg text-blue-700 font-medium" data-testid="text-professor-title">
+                        {labInfo.piTitle}
+                      </p>
+                    </div>
+                    {labInfo.piEmail && (
+                      <div className="flex items-center text-gray-700">
+                        <Mail className="h-5 w-5 mr-2 text-blue-600" />
+                        <a
+                          href={`mailto:${labInfo.piEmail}`}
+                          className="hover:text-blue-600 transition-colors"
+                          data-testid="link-professor-email"
+                        >
+                          {labInfo.piEmail}
+                        </a>
+                      </div>
+                    )}
+                    {labInfo.piPhone && (
+                      <div className="flex items-center text-gray-700">
+                        <Phone className="h-5 w-5 mr-2 text-blue-600" />
+                        <span data-testid="text-professor-phone">{labInfo.piPhone}</span>
+                      </div>
+                    )}
+                    {labInfo.description && (
+                      <div className="mt-4">
+                        <p className="text-gray-700 leading-relaxed" data-testid="text-professor-description">
+                          {labInfo.description}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Add Member Form */}
         {showAddForm && isAdmin && (
           <div className="mb-16">
@@ -420,6 +565,127 @@ export default function MembersPage() {
           </>
         )}
       </div>
+
+      {/* Professor Edit Dialog */}
+      <Dialog open={showEditProfessor} onOpenChange={setShowEditProfessor}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>교수님 정보 수정</DialogTitle>
+          </DialogHeader>
+          <Form {...professorForm}>
+            <form onSubmit={professorForm.handleSubmit(onProfessorSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={professorForm.control}
+                  name="principalInvestigator"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>교수님 성함 *</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="교수님 이름을 입력하세요" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={professorForm.control}
+                  name="piTitle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>직책 *</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="예: 교수, 부교수, 조교수" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={professorForm.control}
+                  name="piEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>이메일</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="email" placeholder="professor@university.edu" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={professorForm.control}
+                  name="piPhone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>전화번호</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="연락처를 입력하세요" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={professorForm.control}
+                name="piPhoto"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>프로필 사진 URL</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="프로필 사진 URL을 입력하세요" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={professorForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>소개</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        {...field} 
+                        placeholder="교수님 소개를 입력하세요"
+                        rows={4}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-end gap-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setShowEditProfessor(false)}
+                >
+                  취소
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={updateProfessorMutation.isPending}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {updateProfessorMutation.isPending ? "저장 중..." : "저장"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

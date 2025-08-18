@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { getSession, requireAuth, requireAdmin } from "./auth";
-import { insertUserSchema, loginSchema, insertPublicationSchema, insertResearchProjectSchema, insertNewsSchema, insertMemberSchema, insertResearchAreaSchema } from "@shared/schema";
+import { insertUserSchema, loginSchema, insertPublicationSchema, insertResearchProjectSchema, insertNewsSchema, insertMemberSchema, insertResearchAreaSchema, insertLabInfoSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -437,7 +437,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/lab-info", requireAuth, requireAdmin, async (req, res) => {
     try {
-      const { insertLabInfoSchema } = await import('@shared/schema');
       const validatedData = insertLabInfoSchema.parse(req.body);
       const info = await storage.createOrUpdateLabInfo(validatedData);
       res.json(info);
