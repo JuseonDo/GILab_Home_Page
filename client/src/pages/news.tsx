@@ -8,7 +8,7 @@ import type { News } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function NewsPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
   const { data: news = [], isLoading, error } = useQuery<News[]>({
     queryKey: ["/api/news"],
   });
@@ -35,7 +35,7 @@ export default function NewsPage() {
             <p className="text-xl text-blue-100 max-w-3xl mx-auto" data-testid="text-news-description">
               Stay informed about our latest research breakthroughs, publications, and laboratory updates.
             </p>
-            {isAuthenticated && (
+            {isAdmin && (
               <div className="mt-8">
                 <Link href="/admin">
                   <Button variant="secondary" size="lg" data-testid="button-manage-news">

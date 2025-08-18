@@ -91,12 +91,14 @@ export default function Header() {
               <div className="flex items-center space-x-4 ml-6 border-l border-gray-200 pl-6">
                 {isAuthenticated && user ? (
                   <>
-                    <Link href="/create-publication">
-                      <Button size="sm" data-testid="button-create-publication">
-                        <Plus className="h-4 w-4 mr-1" />
-                        논문 게시
-                      </Button>
-                    </Link>
+                    {user.isAdmin && (
+                      <Link href="/create-publication">
+                        <Button size="sm" data-testid="button-create-publication">
+                          <Plus className="h-4 w-4 mr-1" />
+                          논문 게시
+                        </Button>
+                      </Link>
+                    )}
                     
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
