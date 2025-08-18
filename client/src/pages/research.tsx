@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, ExternalLink, Download, Trash2, Edit } from "lucide-react";
+import { Plus, ExternalLink, Download, Trash2, Edit, ChevronUp, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,6 +31,8 @@ export default function Research() {
   const { data: publications = [], isLoading: publicationsLoading } = useQuery<Publication[]>({
     queryKey: ["/api/publications"],
   });
+
+  const sortedPublications = publications.sort((a, b) => (a.order || 0) - (b.order || 0));
 
   const { data: researchAreas = [], isLoading: areasLoading } = useQuery<ResearchArea[]>({
     queryKey: ["/api/research-areas"],
@@ -106,6 +108,42 @@ export default function Research() {
       toast({
         title: "연구분야 추가 실패",
         description: error.message || "연구분야 추가 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const movePublicationMutation = useMutation({
+    mutationFn: async (data: { id: string; direction: 'up' | 'down' }) => {
+      const currentIndex = sortedPublications.findIndex(p => p.id === data.id);
+      if (currentIndex === -1) return;
+      
+      let newOrder;
+      if (data.direction === 'up' && currentIndex > 0) {
+        // Move up: use previous item's order - 1
+        const prevPublication = sortedPublications[currentIndex - 1];
+        newOrder = (prevPublication.order || 0) - 1;
+      } else if (data.direction === 'down' && currentIndex < sortedPublications.length - 1) {
+        // Move down: use next item's order + 1
+        const nextPublication = sortedPublications[currentIndex + 1];
+        newOrder = (nextPublication.order || 0) + 1;
+      } else {
+        return; // Can't move
+      }
+      
+      return apiRequest(`/api/publications/${data.id}/order`, "PUT", { order: newOrder });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/publications"] });
+      toast({
+        title: "순서 변경 완료",
+        description: "논문 순서가 성공적으로 변경되었습니다.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "순서 변경 실패",
+        description: error.message || "논문 순서 변경에 실패했습니다.",
         variant: "destructive",
       });
     },
@@ -638,9 +676,9 @@ export default function Research() {
             </div>
           )}
 
-          {publications.length > 0 ? (
+          {sortedPublications.length > 0 ? (
             <div className="space-y-6">
-              {publications.map((publication) => (
+              {sortedPublications.map((publication, index) => (
                 <Card
                   key={publication.id}
                   className="group hover:shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer relative overflow-hidden"
@@ -663,6 +701,32 @@ export default function Research() {
                         </span>
                       </div>
                       <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        {isAdmin && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => movePublicationMutation.mutate({ id: publication.id, direction: 'up' })}
+                              disabled={index === 0 || movePublicationMutation.isPending}
+                              className="hover:bg-gray-100"
+                              title="위로 이동"
+                              data-testid={`button-move-up-${publication.id}`}
+                            >
+                              <ChevronUp className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => movePublicationMutation.mutate({ id: publication.id, direction: 'down' })}
+                              disabled={index === sortedPublications.length - 1 || movePublicationMutation.isPending}
+                              className="hover:bg-gray-100"
+                              title="아래로 이동"
+                              data-testid={`button-move-down-${publication.id}`}
+                            >
+                              <ChevronDown className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
                         {publication.url && (
                           <Button
                             variant="ghost"

@@ -113,6 +113,17 @@ export default function PublicationSlider({ publications }: PublicationSliderPro
                       <span className="font-medium">{publication.journal || publication.conference}</span>
                     </div>
                     
+                    {/* Abstract - shown only on hover */}
+                    {publication.abstract && (
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-500 mb-4">
+                        <div className="text-sm font-medium text-gray-500 mb-2">Abstract:</div>
+                        <div 
+                          className="text-sm text-gray-700 leading-relaxed line-clamp-4 group-hover:line-clamp-none transition-all duration-300"
+                          dangerouslySetInnerHTML={{ __html: publication.abstract }}
+                        />
+                      </div>
+                    )}
+                    
                     <div className="mb-6">
                       <div className="text-sm text-gray-500 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">Authors:</div>
                       <div className="flex flex-wrap gap-2">

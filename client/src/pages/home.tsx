@@ -235,17 +235,17 @@ export default function HomePage() {
         <div className="py-20 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Visit Our Lab</h2>
+              <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">About Our Lab</h2>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Find us on campus and get in touch with our research team.
+                Learn more about our research laboratory and contact information.
               </p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-              {/* Contact Information */}
+              {/* Lab Information */}
               <div className="space-y-8">
                 <div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-6">Contact Information</h3>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-6">Lab Information</h3>
                   <div className="space-y-4">
                     {labInfo.address && (
                       <div className="flex items-start gap-3" data-testid="contact-address">
@@ -317,6 +317,17 @@ export default function HomePage() {
                   </div>
                 </div>
 
+                {/* Research Focus */}
+                {labInfo.researchFocus && (
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Research Focus</h3>
+                    <p className="text-gray-600 leading-relaxed">{labInfo.researchFocus}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Principal Investigator & Map */}
+              <div className="space-y-8">
                 {/* Principal Investigator Info */}
                 {labInfo.principalInvestigator && (
                   <div>
@@ -326,52 +337,63 @@ export default function HomePage() {
                         <img 
                           src={labInfo.piPhoto} 
                           alt={labInfo.principalInvestigator}
-                          className="w-16 h-16 rounded-full object-cover"
+                          className="w-20 h-20 rounded-full object-cover shadow-md"
                         />
                       )}
                       <div>
-                        <h4 className="text-lg font-semibold text-gray-900">{labInfo.principalInvestigator}</h4>
-                        {labInfo.piTitle && <p className="text-gray-600">{labInfo.piTitle}</p>}
-                        <div className="mt-2 space-y-1">
+                        <h4 className="text-xl font-semibold text-gray-900">{labInfo.principalInvestigator}</h4>
+                        {labInfo.piTitle && <p className="text-gray-600 mb-2">{labInfo.piTitle}</p>}
+                        <div className="space-y-1">
                           {labInfo.piEmail && (
-                            <a href={`mailto:${labInfo.piEmail}`} className="block text-lab-blue hover:text-blue-700 text-sm">
-                              {labInfo.piEmail}
-                            </a>
+                            <div className="flex items-center gap-2">
+                              <Mail className="w-4 h-4 text-lab-blue" />
+                              <a href={`mailto:${labInfo.piEmail}`} className="text-lab-blue hover:text-blue-700 text-sm">
+                                {labInfo.piEmail}
+                              </a>
+                            </div>
                           )}
                           {labInfo.piPhone && (
-                            <a href={`tel:${labInfo.piPhone}`} className="block text-lab-blue hover:text-blue-700 text-sm">
-                              {labInfo.piPhone}
-                            </a>
+                            <div className="flex items-center gap-2">
+                              <svg className="w-4 h-4 text-lab-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                              </svg>
+                              <a href={`tel:${labInfo.piPhone}`} className="text-lab-blue hover:text-blue-700 text-sm">
+                                {labInfo.piPhone}
+                              </a>
+                            </div>
                           )}
                         </div>
                       </div>
                     </div>
                   </div>
                 )}
-              </div>
 
-              {/* Map */}
-              {labInfo.latitude && labInfo.longitude && (
-                <div className="h-96 bg-gray-200 rounded-lg overflow-hidden" data-testid="lab-map">
-                  <div 
-                    id="lab-map-container" 
-                    className="w-full h-full"
-                    data-lat={labInfo.latitude}
-                    data-lng={labInfo.longitude}
-                    data-title={labInfo.labName}
-                    data-address={labInfo.address}
-                  >
-                    {/* Google Maps will be initialized here */}
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-200">
-                      <div className="text-center">
-                        <MapPin className="w-12 h-12 text-lab-blue mx-auto mb-2" />
-                        <p className="text-gray-700 font-medium">{labInfo.labName}</p>
-                        <p className="text-gray-600 text-sm">{labInfo.address}</p>
+                {/* Map */}
+                {labInfo.latitude && labInfo.longitude && (
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Location</h3>
+                    <div className="h-80 bg-gray-200 rounded-lg overflow-hidden" data-testid="lab-map">
+                      <div 
+                        id="lab-map-container" 
+                        className="w-full h-full"
+                        data-lat={labInfo.latitude}
+                        data-lng={labInfo.longitude}
+                        data-title={labInfo.labName}
+                        data-address={labInfo.address}
+                      >
+                        {/* Google Maps will be initialized here */}
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-200">
+                          <div className="text-center">
+                            <MapPin className="w-12 h-12 text-lab-blue mx-auto mb-2" />
+                            <p className="text-gray-700 font-medium">{labInfo.labName}</p>
+                            <p className="text-gray-600 text-sm">{labInfo.address}</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
