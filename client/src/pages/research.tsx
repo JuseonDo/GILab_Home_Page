@@ -2,59 +2,33 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { insertPublicationSchema, insertResearchAreaSchema, type Publication, type ResearchArea } from "@shared/schema";
 import { z } from "zod";
-import { ExternalLink, Download, Brain, Bot, Dna, Plus, X, Trash2, ArrowUp, ArrowDown } from "lucide-react";
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Link } from "wouter";
-import type { Publication, Author, ResearchArea } from "@shared/schema";
-import { useAuth } from "@/hooks/useAuth";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, ExternalLink, Download, Trash2, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
-const publicationSchema = z.object({
-  title: z.string().min(1, "제목을 입력해주세요"),
-  journal: z.string().optional(),
-  conference: z.string().optional(),
-  type: z.enum(["journal", "conference"]),
-  year: z.number().min(1900).max(new Date().getFullYear() + 10),
-  url: z.string().url().optional().or(z.literal("")),
-  pdfUrl: z.string().url().optional().or(z.literal("")),
-  imageUrl: z.string().url().optional().or(z.literal("")),
-  abstract: z.string().optional(),
-  keywords: z.string().optional(),
-  authors: z.array(z.object({
-    name: z.string().min(1, "저자 이름을 입력해주세요"),
-    homepage: z.string().url().optional().or(z.literal("")),
-  })).min(1, "최소 한 명의 저자가 필요합니다"),
-});
+type PublicationFormData = z.infer<typeof insertPublicationSchema>;
+type ResearchAreaFormData = z.infer<typeof insertResearchAreaSchema>;
 
-const researchAreaSchema = z.object({
-  name: z.string().min(1, "연구분야 이름을 입력해주세요"),
-  description: z.string().optional(),
-  imageUrl: z.string().url().optional().or(z.literal("")),
-  order: z.number().default(0),
-});
-
-type PublicationFormData = z.infer<typeof publicationSchema>;
-type ResearchAreaFormData = z.infer<typeof researchAreaSchema>;
-
-export default function ResearchPage() {
-  const { isAuthenticated, isAdmin } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+export default function Research() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showAreaForm, setShowAreaForm] = useState(false);
-  
-  const { data: publications = [], isLoading: publicationsLoading } = useQuery<(Publication & { authors: Author[] })[]>({
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: publications = [], isLoading: publicationsLoading } = useQuery<Publication[]>({
     queryKey: ["/api/publications"],
   });
 
@@ -63,19 +37,26 @@ export default function ResearchPage() {
   });
 
   const form = useForm<PublicationFormData>({
-    resolver: zodResolver(publicationSchema),
+    resolver: zodResolver(insertPublicationSchema),
     defaultValues: {
       title: "",
-      journal: "",
-      conference: "",
+      authors: [{ name: "", homepage: "" }],
       type: "journal",
       year: new Date().getFullYear(),
+      journal: "",
+      conference: "",
       url: "",
       pdfUrl: "",
       imageUrl: "",
-      abstract: "",
-      keywords: "",
-      authors: [{ name: "", homepage: "" }],
+    },
+  });
+
+  const areaForm = useForm<ResearchAreaFormData>({
+    resolver: zodResolver(insertResearchAreaSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      parentId: undefined,
     },
   });
 
@@ -84,70 +65,11 @@ export default function ResearchPage() {
     name: "authors",
   });
 
-  const areaForm = useForm<ResearchAreaFormData>({
-    resolver: zodResolver(researchAreaSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-      imageUrl: "",
-      order: 0,
-    },
-  });
-
-  // Publication order management
-  const updateOrderMutation = useMutation({
-    mutationFn: async ({ id, order }: { id: string; order: number }) => {
-      return apiRequest(`/api/publications/${id}/order`, "PUT", { order });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/publications"] });
-      toast({
-        title: "Order updated",
-        description: "Publication order has been updated successfully.",
-      });
-    },
-    onError: (error) => {
-      console.error("Failed to update publication order:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update publication order. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const movePublication = (index: number, direction: 'up' | 'down') => {
-    if (
-      (direction === 'up' && index === 0) ||
-      (direction === 'down' && index === publications.length - 1)
-    ) {
-      return;
-    }
-
-    const current = publications[index];
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    const target = publications[targetIndex];
-
-    // Swap orders
-    updateOrderMutation.mutate({ id: current.id, order: target.order });
-    updateOrderMutation.mutate({ id: target.id, order: current.order });
-  };
-
   const publicationType = form.watch("type");
 
   const createPublicationMutation = useMutation({
-    mutationFn: (data: PublicationFormData) => {
-      const { authors, ...publicationData } = data;
-      return apiRequest("POST", "/api/publications", {
-        publication: {
-          ...publicationData,
-          year: String(publicationData.year), // Convert year to string for database
-        },
-        authors: authors.map(author => ({
-          name: author.name,
-          homepage: author.homepage || undefined,
-        })),
-      });
+    mutationFn: async (data: PublicationFormData) => {
+      return apiRequest("/api/publications", "POST", data);
     },
     onSuccess: () => {
       toast({
@@ -168,8 +90,8 @@ export default function ResearchPage() {
   });
 
   const createResearchAreaMutation = useMutation({
-    mutationFn: (data: ResearchAreaFormData) => {
-      return apiRequest("POST", "/api/research-areas", data);
+    mutationFn: async (data: ResearchAreaFormData) => {
+      return apiRequest("/api/research-areas", "POST", data);
     },
     onSuccess: () => {
       toast({
@@ -242,264 +164,6 @@ export default function ResearchPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        {/* Add Publication Form */}
-        {showAddForm && isAdmin && (
-          <div className="mb-16">
-            <Card className="shadow-xl border-0 bg-white/95 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-2xl">새 논문 추가</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <FormField
-                        control={form.control}
-                        name="title"
-                        render={({ field }) => (
-                          <FormItem className="md:col-span-2">
-                            <FormLabel>제목 *</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="논문 제목을 입력하세요" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="type"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>유형 *</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="논문 유형 선택" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="journal">저널 논문</SelectItem>
-                                <SelectItem value="conference">학회 논문</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="year"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>출간 연도 *</FormLabel>
-                            <FormControl>
-                              <Input 
-                                {...field}
-                                type="number"
-                                min="1900"
-                                max={new Date().getFullYear() + 10}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  field.onChange(value ? parseInt(value) : undefined);
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {publicationType === "journal" && (
-                        <FormField
-                          control={form.control}
-                          name="journal"
-                          render={({ field }) => (
-                            <FormItem className="md:col-span-2">
-                              <FormLabel>저널명</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="저널명을 입력하세요" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      )}
-
-                      {publicationType === "conference" && (
-                        <FormField
-                          control={form.control}
-                          name="conference"
-                          render={({ field }) => (
-                            <FormItem className="md:col-span-2">
-                              <FormLabel>학회명</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="학회명을 입력하세요" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      )}
-
-                      <FormField
-                        control={form.control}
-                        name="url"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>논문 URL</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="https://example.com" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="pdfUrl"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>PDF URL</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="https://example.com/paper.pdf" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="imageUrl"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>이미지 URL</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="https://example.com/image.jpg" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="keywords"
-                        render={({ field }) => (
-                          <FormItem className="md:col-span-2">
-                            <FormLabel>키워드</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="키워드를 쉼표로 구분하여 입력하세요" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="abstract"
-                        render={({ field }) => (
-                          <FormItem className="md:col-span-2">
-                            <FormLabel>초록</FormLabel>
-                            <FormControl>
-                              <Textarea {...field} placeholder="논문 초록을 입력하세요" rows={4} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    {/* Authors */}
-                    <div>
-                      <FormLabel className="text-base font-medium">저자 *</FormLabel>
-                      <div className="space-y-3 mt-3">
-                        {fields.map((field, index) => (
-                          <div key={field.id} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg">
-                            <FormField
-                              control={form.control}
-                              name={`authors.${index}.name`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>저자명</FormLabel>
-                                  <FormControl>
-                                    <Input {...field} placeholder="저자 이름" />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name={`authors.${index}.homepage`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>홈페이지</FormLabel>
-                                  <div className="flex gap-2">
-                                    <FormControl>
-                                      <Input {...field} placeholder="https://example.com" />
-                                    </FormControl>
-                                    {fields.length > 1 && (
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => remove(index)}
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    )}
-                                  </div>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                        ))}
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => append({ name: "", homepage: "" })}
-                          className="w-full"
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          저자 추가
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-4 pt-6">
-                      <Button 
-                        type="submit" 
-                        disabled={createPublicationMutation.isPending}
-                        data-testid="button-submit-publication"
-                      >
-                        {createPublicationMutation.isPending ? "게시 중..." : "논문 게시"}
-                      </Button>
-                      <Button 
-                        type="button" 
-                        variant="outline"
-                        onClick={() => {
-                          setShowAddForm(false);
-                          form.reset();
-                        }}
-                      >
-                        취소
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
         {/* Add Research Area Form */}
         {showAreaForm && isAdmin && (
           <div className="mb-16">
@@ -516,9 +180,9 @@ export default function ResearchPage() {
                         name="name"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>연구분야 이름 *</FormLabel>
+                            <FormLabel>연구분야명 *</FormLabel>
                             <FormControl>
-                              <Input {...field} placeholder="연구분야 이름을 입력하세요" />
+                              <Input {...field} placeholder="연구분야명을 입력하세요" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -527,13 +191,25 @@ export default function ResearchPage() {
 
                       <FormField
                         control={areaForm.control}
-                        name="imageUrl"
+                        name="parentId"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>이미지 URL</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="https://example.com/image.jpg" />
-                            </FormControl>
+                            <FormLabel>상위 연구분야</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || ""}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="상위 연구분야 선택 (선택사항)" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="">없음 (최상위 연구분야)</SelectItem>
+                                {mainAreas.map((area) => (
+                                  <SelectItem key={area.id} value={area.id}>
+                                    {area.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -638,9 +314,11 @@ export default function ResearchPage() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-gray-600 mb-4" data-testid={`text-area-description-${area.id}`}>
-                        {area.description}
-                      </p>
+                      <div 
+                        className="text-gray-600 mb-4" 
+                        data-testid={`text-area-description-${area.id}`}
+                        dangerouslySetInnerHTML={{ __html: area.description || "" }}
+                      />
                       {subAreas.length > 0 && (
                         <div>
                           <h4 className="font-medium text-gray-900 mb-2">Research Focus:</h4>
@@ -693,6 +371,273 @@ export default function ResearchPage() {
               </Button>
             )}
           </div>
+
+          {/* Add Publication Form */}
+          {showAddForm && isAdmin && (
+            <div className="mb-16">
+              <Card className="shadow-xl border-0 bg-white/95 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-2xl">새 논문 추가</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField
+                          control={form.control}
+                          name="title"
+                          render={({ field }) => (
+                            <FormItem className="md:col-span-2">
+                              <FormLabel>제목 *</FormLabel>
+                              <FormControl>
+                                <div className="min-h-[100px]">
+                                  <ReactQuill
+                                    theme="snow"
+                                    value={field.value || ""}
+                                    onChange={field.onChange}
+                                    modules={{
+                                      toolbar: [
+                                        ['bold', 'italic', 'underline'],
+                                        [{ 'color': [] }],
+                                        ['clean']
+                                      ],
+                                    }}
+                                    formats={[
+                                      'bold', 'italic', 'underline',
+                                      'color'
+                                    ]}
+                                    placeholder="논문 제목을 입력하세요"
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="type"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>유형 *</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="논문 유형 선택" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="journal">저널 논문</SelectItem>
+                                  <SelectItem value="conference">학회 논문</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="year"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>출간 연도 *</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field}
+                                  type="number"
+                                  min="1900"
+                                  max={new Date().getFullYear() + 10}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    field.onChange(value ? parseInt(value) : undefined);
+                                  }}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {publicationType === "journal" && (
+                          <FormField
+                            control={form.control}
+                            name="journal"
+                            render={({ field }) => (
+                              <FormItem className="md:col-span-2">
+                                <FormLabel>저널명</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="저널명을 입력하세요" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+
+                        {publicationType === "conference" && (
+                          <FormField
+                            control={form.control}
+                            name="conference"
+                            render={({ field }) => (
+                              <FormItem className="md:col-span-2">
+                                <FormLabel>학회명</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="학회명을 입력하세요" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+
+                        <FormField
+                          control={form.control}
+                          name="url"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>논문 URL</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="https://example.com/paper" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="pdfUrl"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>PDF URL</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="https://example.com/paper.pdf" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="imageUrl"
+                          render={({ field }) => (
+                            <FormItem className="md:col-span-2">
+                              <FormLabel>이미지 URL</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="https://example.com/image.jpg" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="md:col-span-2">
+                          <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                              <FormLabel>저자 *</FormLabel>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => append({ name: "", homepage: "" })}
+                              >
+                                <Plus className="h-4 w-4 mr-2" />
+                                저자 추가
+                              </Button>
+                            </div>
+                            {fields.map((item, index) => (
+                              <div key={item.id} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg">
+                                <FormField
+                                  control={form.control}
+                                  name={`authors.${index}.name`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>저자명</FormLabel>
+                                      <FormControl>
+                                        <div className="min-h-[80px]">
+                                          <ReactQuill
+                                            theme="snow"
+                                            value={field.value || ""}
+                                            onChange={field.onChange}
+                                            modules={{
+                                              toolbar: [
+                                                ['bold', 'italic', 'underline'],
+                                                [{ 'color': [] }],
+                                                ['clean']
+                                              ],
+                                            }}
+                                            formats={[
+                                              'bold', 'italic', 'underline',
+                                              'color'
+                                            ]}
+                                            placeholder="저자 이름"
+                                          />
+                                        </div>
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name={`authors.${index}.homepage`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>홈페이지</FormLabel>
+                                      <div className="flex gap-2">
+                                        <FormControl>
+                                          <Input {...field} placeholder="https://example.com" />
+                                        </FormControl>
+                                        {fields.length > 1 && (
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => remove(index)}
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        )}
+                                      </div>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-4 pt-6">
+                        <Button 
+                          type="submit" 
+                          disabled={createPublicationMutation.isPending}
+                          data-testid="button-submit-publication"
+                        >
+                          {createPublicationMutation.isPending ? "게시 중..." : "논문 게시"}
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline"
+                          onClick={() => {
+                            setShowAddForm(false);
+                            form.reset();
+                          }}
+                        >
+                          취소
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {publications.length > 0 ? (
             <div className="space-y-6">
               {publications.map((publication) => (
@@ -702,7 +647,6 @@ export default function ResearchPage() {
                   data-testid={`card-publication-${publication.id}`}
                 >
                   <CardContent className="p-8 relative">
-                    {/* Background overlay on hover */}
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-purple-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
                     
                     <div className="flex items-start justify-between mb-4">
@@ -745,11 +689,20 @@ export default function ResearchPage() {
                             </a>
                           </Button>
                         )}
+                        {isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="hover:bg-green-100"
+                            data-testid={`button-edit-publication-${publication.id}`}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                     
                     <div className={`grid ${publication.imageUrl ? 'lg:grid-cols-3 gap-6' : 'grid-cols-1'}`}>
-                      {/* Image Section */}
                       {publication.imageUrl && (
                         <div className="lg:col-span-1">
                           <div className="relative aspect-square rounded-lg overflow-hidden shadow-sm group-hover:shadow-md transition-shadow">
@@ -764,14 +717,12 @@ export default function ResearchPage() {
                         </div>
                       )}
                       
-                      {/* Content Section */}
                       <div className={`${publication.imageUrl ? 'lg:col-span-2' : 'col-span-1'} space-y-4`}>
                         <h3
                           className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-900 transition-colors"
                           data-testid={`text-publication-title-${publication.id}`}
-                        >
-                          {publication.title}
-                        </h3>
+                          dangerouslySetInnerHTML={{ __html: publication.title }}
+                        />
                         
                         {publication.authors && publication.authors.length > 0 && (
                           <div>
@@ -786,13 +737,13 @@ export default function ResearchPage() {
                                       rel="noopener noreferrer"
                                       className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
                                       data-testid={`link-author-${publication.id}-${authorIndex}`}
-                                    >
-                                      {author.name}
-                                    </a>
+                                      dangerouslySetInnerHTML={{ __html: author.name }}
+                                    />
                                   ) : (
-                                    <span className="text-gray-700 font-medium">
-                                      {author.name}
-                                    </span>
+                                    <span 
+                                      className="text-gray-700 font-medium"
+                                      dangerouslySetInnerHTML={{ __html: author.name }}
+                                    />
                                   )}
                                   {authorIndex < publication.authors.length - 1 && (
                                     <span className="text-gray-400 ml-1">•</span>
@@ -803,59 +754,26 @@ export default function ResearchPage() {
                           </div>
                         )}
                         
-                        {(publication.journal || publication.conference) && (
-                          <p className="text-gray-700 font-medium" data-testid={`text-publication-venue-${publication.id}`}>
-                            {publication.journal || publication.conference}
-                          </p>
-                        )}
-                        
-                        {/* Keywords - shown only on hover */}
-                        {publication.keywords && (
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <p className="text-xs font-medium text-gray-500 mb-2">Keywords:</p>
-                            <div className="flex flex-wrap gap-1">
-                              {publication.keywords.split(',').map((keyword, i) => (
-                                <Badge key={i} variant="outline" className="text-xs">
-                                  {keyword.trim()}
-                                </Badge>
-                              ))}
-                            </div>
+                        {publication.journal && (
+                          <div className="text-sm text-gray-600" data-testid={`text-publication-journal-${publication.id}`}>
+                            <span className="font-medium">Journal:</span> {publication.journal}
                           </div>
                         )}
                         
-                        {/* Abstract - truncated, full text on hover */}
-                        {publication.abstract && (
-                          <div>
-                            <p className="text-gray-600 text-sm group-hover:hidden" data-testid={`text-publication-abstract-short-${publication.id}`}>
-                              {publication.abstract.length > 200 
-                                ? `${publication.abstract.substring(0, 200)}...` 
-                                : publication.abstract}
-                            </p>
-                            <div className="hidden group-hover:block">
-                              <p className="text-xs font-medium text-gray-500 mb-2">Abstract:</p>
-                              <p className="text-gray-600 text-sm leading-relaxed" data-testid={`text-publication-abstract-${publication.id}`}>
-                                {publication.abstract}
-                              </p>
-                            </div>
+                        {publication.conference && (
+                          <div className="text-sm text-gray-600" data-testid={`text-publication-conference-${publication.id}`}>
+                            <span className="font-medium">Conference:</span> {publication.conference}
                           </div>
                         )}
                       </div>
-                    </div>
-                    
-                    {/* Hover indicator */}
-                    <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <p className="text-xs text-gray-400 flex items-center gap-1">
-                        <span>Hover to see more</span>
-                        <ExternalLink className="h-3 w-3" />
-                      </p>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <p className="text-gray-500 mb-4">아직 논문이 등록되지 않았습니다.</p>
+            <div className="text-center py-16">
+              <p className="text-gray-500 mb-6">아직 게시된 논문이 없습니다.</p>
               {isAdmin && (
                 <Button 
                   variant="outline"
@@ -869,8 +787,6 @@ export default function ResearchPage() {
             </div>
           )}
         </div>
-
-
       </div>
     </div>
   );

@@ -35,6 +35,7 @@ export default function NewsPage() {
     defaultValues: {
       title: "",
       content: "",
+      summary: "",
       imageUrl: "",
     },
   });
@@ -117,6 +118,20 @@ export default function NewsPage() {
                           )}
                         />
                         
+                        <FormField
+                          control={form.control}
+                          name="summary"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>요약 (선택사항)</FormLabel>
+                              <FormControl>
+                                <Input placeholder="뉴스 요약을 입력하세요" {...field} value={field.value || ""} data-testid="input-news-summary" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
                         <FormField
                           control={form.control}
                           name="imageUrl"
