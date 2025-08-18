@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import type { Publication, Author } from "@shared/schema";
 
 interface PublicationSliderProps {
@@ -11,13 +15,18 @@ interface PublicationSliderProps {
 export default function PublicationSlider({ publications }: PublicationSliderProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAutoPlay, setIsAutoPlay] = useState(true);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const isAdmin = user?.isAdmin;
 
   useEffect(() => {
     if (!isAutoPlay || publications.length <= 1) return;
 
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % publications.length);
-    }, 15000);
+    }, 6000);
 
     return () => clearInterval(interval);
   }, [isAutoPlay, publications.length]);
@@ -32,6 +41,44 @@ export default function PublicationSlider({ publications }: PublicationSliderPro
 
   const goToSlide = (index: number) => {
     setCurrentSlide(index);
+  };
+
+  const updateOrderMutation = useMutation({
+    mutationFn: async ({ id, order }: { id: string; order: number }) => {
+      return apiRequest(`/api/publications/${id}/order`, {
+        method: "PUT",
+        body: JSON.stringify({ order }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/publications"] });
+      toast({
+        title: "순서 변경 완료",
+        description: "논문 순서가 성공적으로 변경되었습니다.",
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to update publication order:", error);
+      toast({
+        title: "순서 변경 실패",
+        description: "논문 순서 변경에 실패했습니다. 다시 시도해주세요.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const movePublication = (direction: 'up' | 'down') => {
+    const currentPublication = publications[currentSlide];
+    if (!currentPublication) return;
+
+    const newOrder = direction === 'up' 
+      ? Math.max(0, currentPublication.order - 1)
+      : currentPublication.order + 1;
+
+    updateOrderMutation.mutate({
+      id: currentPublication.id,
+      order: newOrder,
+    });
   };
 
   if (publications.length === 0) {
@@ -253,6 +300,32 @@ export default function PublicationSlider({ publications }: PublicationSliderPro
                 <ChevronRight className="h-6 w-6" />
               </Button>
             </>
+          )}
+
+          {/* Admin Order Management Buttons */}
+          {isAdmin && publications.length > 0 && (
+            <div className="absolute top-4 right-4 flex gap-2 z-20">
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-white/90 backdrop-blur-sm shadow-lg hover:bg-white"
+                onClick={() => movePublication('up')}
+                disabled={updateOrderMutation.isPending}
+                data-testid="button-move-up"
+              >
+                <ArrowUp className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-white/90 backdrop-blur-sm shadow-lg hover:bg-white"
+                onClick={() => movePublication('down')}
+                disabled={updateOrderMutation.isPending}
+                data-testid="button-move-down"
+              >
+                <ArrowDown className="h-4 w-4" />
+              </Button>
+            </div>
           )}
 
           {/* Slide Indicators */}

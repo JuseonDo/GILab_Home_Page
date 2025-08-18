@@ -37,6 +37,7 @@ export interface IStorage {
   getAllPublicationsWithAuthors(): Promise<(Publication & { authors: Author[] })[]>;
   getPublicationsByYear(year: string): Promise<(Publication & { authors: Author[] })[]>;
   createPublication(publication: InsertPublication, authorId: string, authorsList: InsertAuthor[]): Promise<Publication>;
+  updatePublicationOrder(id: string, order: number): Promise<Publication | undefined>;
   
   // News management
   getAllNews(): Promise<News[]>;
@@ -161,7 +162,7 @@ export class DatabaseStorage implements IStorage {
 
   // Publications with authors
   async getAllPublicationsWithAuthors(): Promise<(Publication & { authors: Author[] })[]> {
-    const publicationsList = await db.select().from(publications).orderBy(desc(publications.year));
+    const publicationsList = await db.select().from(publications).orderBy(publications.order, desc(publications.year));
     
     const result = [];
     for (const publication of publicationsList) {
@@ -221,6 +222,15 @@ export class DatabaseStorage implements IStorage {
       );
     }
 
+    return publication;
+  }
+
+  async updatePublicationOrder(id: string, order: number): Promise<Publication | undefined> {
+    const [publication] = await db
+      .update(publications)
+      .set({ order })
+      .where(eq(publications.id, id))
+      .returning();
     return publication;
   }
 

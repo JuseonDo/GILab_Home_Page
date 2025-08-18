@@ -195,6 +195,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update publication order (Admin only)
+  app.put("/api/publications/:id/order", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { order } = req.body;
+      if (typeof order !== 'number') {
+        return res.status(400).json({ message: "Order must be a number" });
+      }
+
+      const publication = await storage.updatePublicationOrder(req.params.id, order);
+      if (!publication) {
+        return res.status(404).json({ message: "Publication not found" });
+      }
+
+      res.json(publication);
+    } catch (error) {
+      console.error("Failed to update publication order:", error);
+      res.status(500).json({ message: "Failed to update publication order" });
+    }
+  });
+
   // News API
   app.get("/api/news", async (req, res) => {
     try {
