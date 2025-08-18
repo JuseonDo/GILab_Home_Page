@@ -22,12 +22,12 @@ import { apiRequest } from "@/lib/queryClient";
 
 const memberSchema = z.object({
   name: z.string().min(1, "이름을 입력해주세요"),
-  degree: z.enum(["masters", "phd", "bachelors", "other"]),
+  degree: z.string().min(1, "학위 과정을 입력해주세요"),
   email: z.string().email().optional().or(z.literal("")),
-  photoUrl: z.string().url().optional().or(z.literal("")),
-  homepageUrl: z.string().url().optional().or(z.literal("")),
+  imageUrl: z.string().url().optional().or(z.literal("")),
+  homepage: z.string().url().optional().or(z.literal("")),
   bio: z.string().optional(),
-  labDuration: z.string().min(1, "연구실 재학기간을 입력해주세요"),
+  joinedAt: z.string().min(1, "연구실 재학기간을 입력해주세요"),
 });
 
 const professorSchema = z.object({
@@ -168,7 +168,7 @@ export default function MembersPage() {
       <CardContent className="p-6">
         <div className="text-center">
           <img
-            src={member.photoUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=300"}
+            src={member.imageUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=300"}
             alt={member.name}
             className="w-24 h-24 rounded-full object-cover mx-auto mb-4 border-2 border-gray-100"
             data-testid={`img-member-${member.id}`}
@@ -180,7 +180,7 @@ export default function MembersPage() {
             {member.degree}
           </Badge>
           <p className="text-sm text-gray-600 mb-3" data-testid={`text-member-duration-${member.id}`}>
-            {member.labDuration}
+            {member.joinedAt}
           </p>
           {member.bio && (
             <p className="text-sm text-gray-600 mb-4 line-clamp-3" data-testid={`text-member-bio-${member.id}`}>
@@ -195,9 +195,9 @@ export default function MembersPage() {
                 </a>
               </Button>
             )}
-            {member.homepageUrl && (
+            {member.homepage && (
               <Button variant="outline" size="sm" asChild data-testid={`button-member-homepage-${member.id}`}>
-                <a href={member.homepageUrl} target="_blank" rel="noopener noreferrer">
+                <a href={member.homepage} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4" />
                 </a>
               </Button>
@@ -328,9 +328,11 @@ export default function MembersPage() {
                     )}
                     {labInfo.description && (
                       <div className="mt-4">
-                        <p className="text-gray-700 leading-relaxed" data-testid="text-professor-description">
-                          {labInfo.description}
-                        </p>
+                        <div 
+                          className="text-gray-700 leading-relaxed prose prose-sm max-w-none" 
+                          data-testid="text-professor-description"
+                          dangerouslySetInnerHTML={{ __html: labInfo.description }}
+                        />
                       </div>
                     )}
                   </div>
@@ -391,7 +393,7 @@ export default function MembersPage() {
 
                       <FormField
                         control={form.control}
-                        name="labDuration"
+                        name="joinedAt"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>연구실 재학기간 *</FormLabel>
@@ -419,7 +421,7 @@ export default function MembersPage() {
 
                       <FormField
                         control={form.control}
-                        name="photoUrl"
+                        name="imageUrl"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>사진 URL</FormLabel>
@@ -433,7 +435,7 @@ export default function MembersPage() {
 
                       <FormField
                         control={form.control}
-                        name="homepageUrl"
+                        name="homepage"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>홈페이지 URL</FormLabel>
@@ -690,11 +692,33 @@ export default function MembersPage() {
                   <FormItem>
                     <FormLabel>소개</FormLabel>
                     <FormControl>
-                      <Textarea 
-                        {...field} 
-                        placeholder="교수님 소개를 입력하세요"
-                        rows={4}
-                      />
+                      <div className="min-h-[200px]">
+                        <ReactQuill
+                          theme="snow"
+                          value={field.value || ""}
+                          onChange={field.onChange}
+                          modules={{
+                            toolbar: [
+                              [{ 'header': [1, 2, 3, false] }],
+                              ['bold', 'italic', 'underline', 'strike'],
+                              [{ 'color': [] }, { 'background': [] }],
+                              [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                              [{ 'align': [] }],
+                              ['link'],
+                              ['clean']
+                            ],
+                          }}
+                          formats={[
+                            'header',
+                            'bold', 'italic', 'underline', 'strike',
+                            'color', 'background',
+                            'list', 'bullet',
+                            'align',
+                            'link'
+                          ]}
+                          placeholder="교수님 소개를 입력하세요"
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

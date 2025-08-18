@@ -26,7 +26,7 @@ export default function Research() {
   const [editingPublication, setEditingPublication] = useState<string | null>(null);
   const [editingArea, setEditingArea] = useState<string | null>(null);
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.email === "gilab@admin.com";
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -175,6 +175,46 @@ export default function Research() {
       toast({
         title: "논문 수정 실패",
         description: error.message || "논문 수정에 실패했습니다.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deletePublicationMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest(`/api/publications/${id}`, "DELETE");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/publications"] });
+      toast({
+        title: "논문 삭제 완료",
+        description: "논문이 성공적으로 삭제되었습니다.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "논문 삭제 실패",
+        description: error.message || "논문 삭제에 실패했습니다.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteResearchAreaMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest(`/api/research-areas/${id}`, "DELETE");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/research-areas"] });
+      toast({
+        title: "연구분야 삭제 완료",
+        description: "연구분야가 성공적으로 삭제되었습니다.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "연구분야 삭제 실패",
+        description: error.message || "연구분야 삭제에 실패했습니다.",
         variant: "destructive",
       });
     },
@@ -566,16 +606,26 @@ export default function Research() {
                         {area.name}
                       </CardTitle>
                       {isAdmin && (
-                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 flex space-x-1">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => startEditingArea(area)}
-                            className="hover:bg-green-100 shadow-lg bg-white/90"
+                            className="hover:bg-blue-100 hover:text-blue-600 shadow-lg bg-white/90"
                             title="편집"
                             data-testid={`button-edit-area-${area.id}`}
                           >
                             <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteResearchAreaMutation.mutate(area.id)}
+                            className="hover:bg-red-100 hover:text-red-600 shadow-lg bg-white/90"
+                            title="삭제"
+                            data-testid={`button-delete-area-${area.id}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       )}
@@ -1159,6 +1209,16 @@ export default function Research() {
                             <Button
                               variant="ghost"
                               size="sm"
+                              onClick={() => startEditingPublication(publication)}
+                              className="hover:bg-blue-100 hover:text-blue-600"
+                              title="수정"
+                              data-testid={`button-edit-${publication.id}`}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => movePublicationMutation.mutate({ id: publication.id, direction: 'up' })}
                               disabled={index === 0 || movePublicationMutation.isPending}
                               className="hover:bg-gray-100"
@@ -1181,12 +1241,12 @@ export default function Research() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => startEditingPublication(publication)}
-                              className="hover:bg-green-100"
-                              title="편집"
-                              data-testid={`button-edit-publication-${publication.id}`}
+                              onClick={() => deletePublicationMutation.mutate(publication.id)}
+                              className="hover:bg-red-100 hover:text-red-600"
+                              title="삭제"
+                              data-testid={`button-delete-${publication.id}`}
                             >
-                              <Edit className="h-4 w-4" />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </>
                         )}
