@@ -566,7 +566,7 @@ export default function ResearchPage() {
                   <Card key={area.id} className="hover:shadow-lg transition-shadow" data-testid={`card-research-area-${area.id}`}>
                     <CardHeader>
                       <CardTitle className="text-xl text-gray-900" data-testid={`text-area-title-${area.id}`}>
-                        {area.title}
+                        {area.name}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -579,7 +579,7 @@ export default function ResearchPage() {
                           <ul className="text-sm text-gray-600 space-y-1">
                             {subAreas.map((subArea) => (
                               <li key={subArea.id} data-testid={`text-subarea-${subArea.id}`}>
-                                • {subArea.title}
+                                • {subArea.name}
                               </li>
                             ))}
                           </ul>

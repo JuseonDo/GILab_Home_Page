@@ -17,7 +17,7 @@ export default function PublicationSlider({ publications }: PublicationSliderPro
 
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % publications.length);
-    }, 6000);
+    }, 15000);
 
     return () => clearInterval(interval);
   }, [isAutoPlay, publications.length]);
