@@ -199,9 +199,18 @@ export default function PublicationSlider({ publications }: PublicationSliderPro
                   {publication.abstract && (
                     <div className="border-t border-gray-100 pt-6 px-8 pb-4">
                       <h4 className="text-sm font-semibold text-gray-900 mb-3">Abstract</h4>
-                      <p className="text-gray-700 text-sm leading-relaxed mb-6" data-testid={`text-abstract-${index}`}>
-                        {publication.abstract}
-                      </p>
+                      <div className="overflow-hidden" data-testid={`abstract-container-${index}`}>
+                        <p className="text-gray-700 text-sm leading-relaxed mb-6 transition-all duration-500" data-testid={`text-abstract-${index}`}>
+                          <span className="group-hover:hidden">
+                            {publication.abstract.length > 200 
+                              ? `${publication.abstract.substring(0, 200)}...` 
+                              : publication.abstract}
+                          </span>
+                          <span className="hidden group-hover:inline">
+                            {publication.abstract}
+                          </span>
+                        </p>
+                      </div>
                     </div>
                   )}
                   
