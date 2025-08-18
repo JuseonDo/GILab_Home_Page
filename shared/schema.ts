@@ -65,6 +65,7 @@ export const publications = pgTable("publications", {
   type: text("type").notNull(), // 'journal', 'conference'
   abstract: text("abstract").notNull(),
   pdfUrl: text("pdf_url"), // URL to the PDF file
+  imageUrl: text("image_url"), // URL to the publication image
   authorId: varchar("author_id").references(() => users.id).notNull(), // User who created the publication
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

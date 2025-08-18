@@ -76,82 +76,100 @@ export default function PublicationSlider({ publications }: PublicationSliderPro
                 data-testid={`slide-${index}`}
               >
                 <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 max-w-5xl mx-auto">
-                  <div className="p-8">
-                    <div className="flex items-start justify-between mb-6">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-4">
-                          <Badge 
-                            variant={publication.type === 'journal' ? 'default' : 'secondary'}
-                            className="text-sm"
-                            data-testid={`badge-type-${index}`}
-                          >
-                            {publication.type === 'journal' ? 'Journal' : 'Conference'}
-                          </Badge>
-                          <Badge variant="outline" data-testid={`badge-year-${index}`}>
-                            {publication.year}
-                          </Badge>
+                  <div className={`grid ${publication.imageUrl ? 'lg:grid-cols-2 gap-8' : 'grid-cols-1'} p-8`}>
+                    {/* Image Section */}
+                    {publication.imageUrl && (
+                      <div className="flex items-center justify-center">
+                        <div className="relative aspect-square w-full max-w-sm rounded-lg overflow-hidden shadow-md">
+                          <img
+                            src={publication.imageUrl}
+                            alt={`${publication.title} illustration`}
+                            className="w-full h-full object-cover"
+                            data-testid={`img-publication-${index}`}
+                          />
                         </div>
-                        
-                        <h3 className="text-2xl font-bold text-gray-900 mb-4 leading-tight" data-testid={`text-title-${index}`}>
-                          {publication.title}
-                        </h3>
-                        
-                        <div className="text-sm text-gray-600 mb-4" data-testid={`text-venue-${index}`}>
-                          {publication.journal || publication.conference}
-                        </div>
-                        
-                        <div className="mb-6">
-                          <div className="text-sm text-gray-600 mb-2">Authors:</div>
-                          <div className="flex flex-wrap gap-2">
-                            {publication.authors.map((author, authorIndex) => (
-                              <span key={authorIndex} className="text-sm">
-                                {author.homepage ? (
-                                  <a
-                                    href={author.homepage}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
-                                    data-testid={`link-author-${index}-${authorIndex}`}
-                                  >
-                                    {author.name}
-                                  </a>
-                                ) : (
-                                  <span className="text-gray-700 font-medium" data-testid={`text-author-${index}-${authorIndex}`}>
-                                    {author.name}
-                                  </span>
-                                )}
-                                {authorIndex < publication.authors.length - 1 && (
-                                  <span className="text-gray-500 ml-2">•</span>
-                                )}
-                              </span>
-                            ))}
-                          </div>
+                      </div>
+                    )}
+                    
+                    {/* Content Section */}
+                    <div className="flex flex-col justify-center">
+                      <div className="flex items-center gap-3 mb-4">
+                        <Badge 
+                          variant={publication.type === 'journal' ? 'default' : 'secondary'}
+                          className="text-sm"
+                          data-testid={`badge-type-${index}`}
+                        >
+                          {publication.type === 'journal' ? 'Journal' : 'Conference'}
+                        </Badge>
+                        <Badge variant="outline" data-testid={`badge-year-${index}`}>
+                          {publication.year}
+                        </Badge>
+                      </div>
+                      
+                      <h3 className="text-2xl font-bold text-gray-900 mb-4 leading-tight" data-testid={`text-title-${index}`}>
+                        {publication.title}
+                      </h3>
+                      
+                      <div className="text-sm text-gray-600 mb-4" data-testid={`text-venue-${index}`}>
+                        {publication.journal || publication.conference}
+                      </div>
+                      
+                      <div className="mb-6">
+                        <div className="text-sm text-gray-600 mb-2">Authors:</div>
+                        <div className="flex flex-wrap gap-2">
+                          {publication.authors.map((author, authorIndex) => (
+                            <span key={authorIndex} className="text-sm">
+                              {author.homepage ? (
+                                <a
+                                  href={author.homepage}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                                  data-testid={`link-author-${index}-${authorIndex}`}
+                                >
+                                  {author.name}
+                                </a>
+                              ) : (
+                                <span className="text-gray-700 font-medium" data-testid={`text-author-${index}-${authorIndex}`}>
+                                  {author.name}
+                                </span>
+                              )}
+                              {authorIndex < publication.authors.length - 1 && (
+                                <span className="text-gray-500 ml-2">•</span>
+                              )}
+                            </span>
+                          ))}
                         </div>
                       </div>
                     </div>
-                    
-                    <div className="border-t border-gray-100 pt-6">
+                  </div>
+                  
+                  {/* Abstract and PDF Section */}
+                  {publication.abstract && (
+                    <div className="border-t border-gray-100 pt-6 px-8 pb-4">
                       <h4 className="text-sm font-semibold text-gray-900 mb-3">Abstract</h4>
                       <p className="text-gray-700 text-sm leading-relaxed mb-6" data-testid={`text-abstract-${index}`}>
                         {publication.abstract}
                       </p>
-                      
-                      {publication.pdfUrl && (
-                        <div className="flex justify-end">
-                          <a
-                            href={publication.pdfUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
-                            data-testid={`link-pdf-${index}`}
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                            View PDF
-                          </a>
-                        </div>
-                      )}
                     </div>
-                  </div>
+                  )}
+                  
+                  {publication.pdfUrl && (
+                    <div className="px-8 pb-6">
+                      <div className="flex justify-end">
+                        <a
+                          href={publication.pdfUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                          data-testid={`link-pdf-${index}`}
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          View PDF
+                        </a>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

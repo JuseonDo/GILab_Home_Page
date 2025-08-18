@@ -424,6 +424,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Research Areas API
+  app.get("/api/research-areas", async (req, res) => {
+    try {
+      const areas = await storage.getAllResearchAreas();
+      res.json(areas);
+    } catch (error) {
+      console.error("Failed to fetch research areas:", error);
+      res.status(500).json({ message: "Failed to fetch research areas" });
+    }
+  });
+
+  app.post("/api/research-areas", requireAuth, async (req, res) => {
+    try {
+      const areaData = insertResearchAreaSchema.parse(req.body);
+      const area = await storage.createResearchArea(areaData);
+      res.status(201).json(area);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      }
+      console.error("Failed to create research area:", error);
+      res.status(500).json({ message: "Failed to create research area" });
+    }
+  });
+
   // Lab Info API
   app.get("/api/lab-info", async (req, res) => {
     try {

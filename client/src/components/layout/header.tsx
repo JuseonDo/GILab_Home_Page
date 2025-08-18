@@ -60,7 +60,7 @@ export default function Header() {
             <div className="flex-shrink-0">
               <Link href="/" data-testid="link-home-logo">
                 <h1 className="text-xl font-bold text-lab-blue cursor-pointer">
-                  Advanced Research Lab
+                  Generative Intelligence Lab
                 </h1>
               </Link>
             </div>

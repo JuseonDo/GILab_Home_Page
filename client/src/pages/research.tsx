@@ -26,6 +26,7 @@ const publicationSchema = z.object({
   year: z.number().min(1900).max(new Date().getFullYear() + 10),
   url: z.string().url().optional().or(z.literal("")),
   pdfUrl: z.string().url().optional().or(z.literal("")),
+  imageUrl: z.string().url().optional().or(z.literal("")),
   abstract: z.string().optional(),
   keywords: z.string().optional(),
   authors: z.array(z.object({
@@ -34,13 +35,23 @@ const publicationSchema = z.object({
   })).min(1, "최소 한 명의 저자가 필요합니다"),
 });
 
+const researchAreaSchema = z.object({
+  name: z.string().min(1, "연구분야 이름을 입력해주세요"),
+  description: z.string().optional(),
+  parentId: z.string().optional(),
+  imageUrl: z.string().url().optional().or(z.literal("")),
+  order: z.number().default(0),
+});
+
 type PublicationFormData = z.infer<typeof publicationSchema>;
+type ResearchAreaFormData = z.infer<typeof researchAreaSchema>;
 
 export default function ResearchPage() {
   const { isAuthenticated, isAdmin } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showAreaForm, setShowAreaForm] = useState(false);
   
   const { data: publications = [], isLoading: publicationsLoading } = useQuery<(Publication & { authors: Author[] })[]>({
     queryKey: ["/api/publications"],
@@ -60,6 +71,7 @@ export default function ResearchPage() {
       year: new Date().getFullYear(),
       url: "",
       pdfUrl: "",
+      imageUrl: "",
       abstract: "",
       keywords: "",
       authors: [{ name: "", homepage: "" }],
@@ -69,6 +81,17 @@ export default function ResearchPage() {
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "authors",
+  });
+
+  const areaForm = useForm<ResearchAreaFormData>({
+    resolver: zodResolver(researchAreaSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      parentId: "",
+      imageUrl: "",
+      order: 0,
+    },
   });
 
   const publicationType = form.watch("type");
@@ -105,8 +128,34 @@ export default function ResearchPage() {
     },
   });
 
+  const createResearchAreaMutation = useMutation({
+    mutationFn: (data: ResearchAreaFormData) => {
+      return apiRequest("POST", "/api/research-areas", data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "연구분야 추가 완료",
+        description: "연구분야가 성공적으로 추가되었습니다.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/research-areas"] });
+      setShowAreaForm(false);
+      areaForm.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "연구분야 추가 실패",
+        description: error.message || "연구분야 추가 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = (data: PublicationFormData) => {
     createPublicationMutation.mutate(data);
+  };
+
+  const onAreaSubmit = (data: ResearchAreaFormData) => {
+    createResearchAreaMutation.mutate(data);
   };
 
   const mainAreas = researchAreas.filter(area => !area.parentId);
@@ -286,6 +335,20 @@ export default function ResearchPage() {
 
                       <FormField
                         control={form.control}
+                        name="imageUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>이미지 URL</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="https://example.com/image.jpg" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
                         name="keywords"
                         render={({ field }) => (
                           <FormItem className="md:col-span-2">
@@ -398,6 +461,86 @@ export default function ResearchPage() {
           </div>
         )}
 
+        {/* Add Research Area Form */}
+        {showAreaForm && isAdmin && (
+          <div className="mb-16">
+            <Card className="shadow-xl border-0 bg-white/95 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-2xl">새 연구분야 추가</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Form {...areaForm}>
+                  <form onSubmit={areaForm.handleSubmit(onAreaSubmit)} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField
+                        control={areaForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>연구분야 이름 *</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="연구분야 이름을 입력하세요" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={areaForm.control}
+                        name="imageUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>이미지 URL</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="https://example.com/image.jpg" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={areaForm.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem className="md:col-span-2">
+                            <FormLabel>설명</FormLabel>
+                            <FormControl>
+                              <Textarea {...field} placeholder="연구분야에 대한 설명을 입력하세요" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="flex gap-4 pt-6">
+                      <Button 
+                        type="submit" 
+                        disabled={createResearchAreaMutation.isPending}
+                        data-testid="button-submit-research-area"
+                      >
+                        {createResearchAreaMutation.isPending ? "추가 중..." : "연구분야 추가"}
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline"
+                        onClick={() => {
+                          setShowAreaForm(false);
+                          areaForm.reset();
+                        }}
+                      >
+                        취소
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Research Areas */}
         <div className="mb-20">
           <div className="flex justify-between items-center mb-10">
@@ -408,11 +551,11 @@ export default function ResearchPage() {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => {/* Add research area logic here */}}
+                onClick={() => setShowAreaForm(!showAreaForm)}
                 data-testid="button-add-research-area"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                연구분야 추가
+                {showAreaForm ? "취소" : "연구분야 추가"}
               </Button>
             )}
           </div>
@@ -454,7 +597,7 @@ export default function ResearchPage() {
               {isAdmin && (
                 <Button 
                   variant="outline"
-                  onClick={() => {/* Add research area logic here */}}
+                  onClick={() => setShowAreaForm(true)}
                   data-testid="button-add-first-research-area"
                 >
                   <Plus className="h-4 w-4 mr-2" />
