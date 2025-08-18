@@ -1,14 +1,47 @@
-import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, Download, Brain, Bot, Dna, Plus } from "lucide-react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { ExternalLink, Download, Brain, Bot, Dna, Plus, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Link } from "wouter";
 import type { Publication, Author, ResearchArea } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+
+const publicationSchema = z.object({
+  title: z.string().min(1, "제목을 입력해주세요"),
+  journal: z.string().optional(),
+  conference: z.string().optional(),
+  type: z.enum(["journal", "conference"]),
+  year: z.number().min(1900).max(new Date().getFullYear() + 10),
+  url: z.string().url().optional().or(z.literal("")),
+  pdfUrl: z.string().url().optional().or(z.literal("")),
+  abstract: z.string().optional(),
+  keywords: z.string().optional(),
+  authors: z.array(z.object({
+    name: z.string().min(1, "저자 이름을 입력해주세요"),
+    homepage: z.string().url().optional().or(z.literal("")),
+  })).min(1, "최소 한 명의 저자가 필요합니다"),
+});
+
+type PublicationFormData = z.infer<typeof publicationSchema>;
 
 export default function ResearchPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [showAddForm, setShowAddForm] = useState(false);
+  
   const { data: publications = [], isLoading: publicationsLoading } = useQuery<(Publication & { authors: Author[] })[]>({
     queryKey: ["/api/publications"],
   });
@@ -16,6 +49,62 @@ export default function ResearchPage() {
   const { data: researchAreas = [], isLoading: areasLoading } = useQuery<ResearchArea[]>({
     queryKey: ["/api/research-areas"],
   });
+
+  const form = useForm<PublicationFormData>({
+    resolver: zodResolver(publicationSchema),
+    defaultValues: {
+      title: "",
+      journal: "",
+      conference: "",
+      type: "journal",
+      year: new Date().getFullYear(),
+      url: "",
+      pdfUrl: "",
+      abstract: "",
+      keywords: "",
+      authors: [{ name: "", homepage: "" }],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "authors",
+  });
+
+  const publicationType = form.watch("type");
+
+  const createPublicationMutation = useMutation({
+    mutationFn: (data: PublicationFormData) => {
+      const { authors, ...publicationData } = data;
+      return apiRequest("POST", "/api/publications", {
+        publication: publicationData,
+        authors: authors.map(author => ({
+          name: author.name,
+          homepage: author.homepage || undefined,
+        })),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "논문 게시 완료",
+        description: "논문이 성공적으로 게시되었습니다.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/publications"] });
+      setShowAddForm(false);
+      form.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "논문 게시 실패",
+        description: error.message || "논문 게시 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: PublicationFormData) => {
+    createPublicationMutation.mutate(data);
+  };
 
   const mainAreas = researchAreas.filter(area => !area.parentId);
   const getSubAreas = (parentId: string) => researchAreas.filter(area => area.parentId === parentId);
@@ -57,20 +146,17 @@ export default function ResearchPage() {
             <p className="text-xl text-blue-100 max-w-3xl mx-auto" data-testid="text-research-description">
               Explore our comprehensive research portfolio and discover the cutting-edge work we're doing across various scientific domains.
             </p>
-            {isAuthenticated && (
-              <div className="mt-8 space-x-4">
-                <Link href="/admin">
-                  <Button variant="secondary" size="lg" data-testid="button-manage-research">
-                    <Plus className="h-5 w-5 mr-2" />
-                    Manage Research Areas
-                  </Button>
-                </Link>
-                <Link href="/create-publication">
-                  <Button variant="secondary" size="lg" data-testid="button-add-publication">
-                    <Plus className="h-5 w-5 mr-2" />
-                    Add Publication
-                  </Button>
-                </Link>
+            {isAdmin && (
+              <div className="mt-8">
+                <Button 
+                  variant="secondary" 
+                  size="lg" 
+                  onClick={() => setShowAddForm(!showAddForm)}
+                  data-testid="button-add-publication"
+                >
+                  <Plus className="h-5 w-5 mr-2" />
+                  {showAddForm ? "취소" : "논문 추가"}
+                </Button>
               </div>
             )}
           </div>
@@ -78,6 +164,247 @@ export default function ResearchPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        {/* Add Publication Form */}
+        {showAddForm && isAdmin && (
+          <div className="mb-16">
+            <Card className="shadow-xl border-0 bg-white/95 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-2xl">새 논문 추가</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="title"
+                        render={({ field }) => (
+                          <FormItem className="md:col-span-2">
+                            <FormLabel>제목 *</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="논문 제목을 입력하세요" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="type"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>유형 *</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="논문 유형 선택" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="journal">저널 논문</SelectItem>
+                                <SelectItem value="conference">학회 논문</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="year"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>출간 연도 *</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field}
+                                type="number"
+                                min="1900"
+                                max={new Date().getFullYear() + 10}
+                                onChange={(e) => field.onChange(parseInt(e.target.value))}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {publicationType === "journal" && (
+                        <FormField
+                          control={form.control}
+                          name="journal"
+                          render={({ field }) => (
+                            <FormItem className="md:col-span-2">
+                              <FormLabel>저널명</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="저널명을 입력하세요" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+
+                      {publicationType === "conference" && (
+                        <FormField
+                          control={form.control}
+                          name="conference"
+                          render={({ field }) => (
+                            <FormItem className="md:col-span-2">
+                              <FormLabel>학회명</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="학회명을 입력하세요" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+
+                      <FormField
+                        control={form.control}
+                        name="url"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>논문 URL</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="https://example.com" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="pdfUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>PDF URL</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="https://example.com/paper.pdf" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="keywords"
+                        render={({ field }) => (
+                          <FormItem className="md:col-span-2">
+                            <FormLabel>키워드</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="키워드를 쉼표로 구분하여 입력하세요" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="abstract"
+                        render={({ field }) => (
+                          <FormItem className="md:col-span-2">
+                            <FormLabel>초록</FormLabel>
+                            <FormControl>
+                              <Textarea {...field} placeholder="논문 초록을 입력하세요" rows={4} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    {/* Authors */}
+                    <div>
+                      <FormLabel className="text-base font-medium">저자 *</FormLabel>
+                      <div className="space-y-3 mt-3">
+                        {fields.map((field, index) => (
+                          <div key={field.id} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg">
+                            <FormField
+                              control={form.control}
+                              name={`authors.${index}.name`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>저자명</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} placeholder="저자 이름" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name={`authors.${index}.homepage`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>홈페이지</FormLabel>
+                                  <div className="flex gap-2">
+                                    <FormControl>
+                                      <Input {...field} placeholder="https://example.com" />
+                                    </FormControl>
+                                    {fields.length > 1 && (
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => remove(index)}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        ))}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => append({ name: "", homepage: "" })}
+                          className="w-full"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          저자 추가
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4 pt-6">
+                      <Button 
+                        type="submit" 
+                        disabled={createPublicationMutation.isPending}
+                        data-testid="button-submit-publication"
+                      >
+                        {createPublicationMutation.isPending ? "게시 중..." : "논문 게시"}
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline"
+                        onClick={() => {
+                          setShowAddForm(false);
+                          form.reset();
+                        }}
+                      >
+                        취소
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Research Areas */}
         {mainAreas.length > 0 && (
           <div className="mb-20">
