@@ -119,6 +119,12 @@ export default function Header() {
                                 <span>관리자 패널</span>
                               </Link>
                             </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href="/settings" className="cursor-pointer w-full" data-testid="link-settings">
+                                <Settings className="h-4 w-4 mr-2" />
+                                <span>실험실 설정</span>
+                              </Link>
+                            </DropdownMenuItem>
                           </>
                         )}
                         <DropdownMenuSeparator />

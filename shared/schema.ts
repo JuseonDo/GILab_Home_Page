@@ -166,6 +166,39 @@ export const insertResearchAreaSchema = createInsertSchema(researchAreas).omit({
   updatedAt: true,
 });
 
+// Lab Info table - single row configuration
+export const labInfo = pgTable("lab_info", {
+  id: varchar("id").primaryKey().default(sql`'lab_settings'`), // Single row table
+  labName: text("lab_name").notNull(),
+  principalInvestigator: text("principal_investigator").notNull(),
+  piTitle: text("pi_title").notNull(),
+  piEmail: text("pi_email"),
+  piPhone: text("pi_phone"),
+  piPhoto: text("pi_photo"),
+  description: text("description"),
+  address: text("address").notNull(),
+  latitude: text("latitude"),
+  longitude: text("longitude"),
+  building: text("building"),
+  room: text("room"),
+  university: text("university").notNull(),
+  department: text("department").notNull(),
+  website: text("website"),
+  establishedYear: text("established_year"),
+  researchFocus: text("research_focus"),
+  contactEmail: text("contact_email").notNull(),
+  contactPhone: text("contact_phone"),
+  officeHours: text("office_hours"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertLabInfoSchema = createInsertSchema(labInfo).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type LoginUser = z.infer<typeof loginSchema>;
@@ -184,3 +217,5 @@ export type Member = typeof members.$inferSelect;
 export type InsertMember = z.infer<typeof insertMemberSchema>;
 export type ResearchArea = typeof researchAreas.$inferSelect;
 export type InsertResearchArea = z.infer<typeof insertResearchAreaSchema>;
+export type LabInfo = typeof labInfo.$inferSelect;
+export type InsertLabInfo = z.infer<typeof insertLabInfoSchema>;

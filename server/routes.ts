@@ -424,6 +424,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Lab Info API
+  app.get("/api/lab-info", async (req, res) => {
+    try {
+      const info = await storage.getLabInfo();
+      res.json(info || null);
+    } catch (error) {
+      console.error("Failed to fetch lab info:", error);
+      res.status(500).json({ message: "Failed to fetch lab info" });
+    }
+  });
+
+  app.put("/api/lab-info", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { insertLabInfoSchema } = await import('@shared/schema');
+      const validatedData = insertLabInfoSchema.parse(req.body);
+      const info = await storage.createOrUpdateLabInfo(validatedData);
+      res.json(info);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      }
+      console.error("Failed to update lab info:", error);
+      res.status(500).json({ message: "Failed to update lab info" });
+    }
+  });
+
   // Contact form submission
   app.post("/api/contact", async (req, res) => {
     try {

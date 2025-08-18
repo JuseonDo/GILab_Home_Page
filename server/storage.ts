@@ -1,5 +1,5 @@
 import { db } from './db';
-import { users, researchProjects, teamMembers, publications, authors, news, members, researchAreas } from '@shared/schema';
+import { users, researchProjects, teamMembers, publications, authors, news, members, researchAreas, labInfo } from '@shared/schema';
 import type { 
   User, InsertUser, LoginUser, 
   ResearchProject, InsertResearchProject, 
@@ -8,7 +8,8 @@ import type {
   Author, InsertAuthor,
   News, InsertNews,
   Member, InsertMember,
-  ResearchArea, InsertResearchArea
+  ResearchArea, InsertResearchArea,
+  LabInfo, InsertLabInfo
 } from '@shared/schema';
 import { eq, desc, and } from 'drizzle-orm';
 import { hashPassword, verifyPassword } from './auth';
@@ -60,6 +61,10 @@ export interface IStorage {
   createResearchArea(area: InsertResearchArea): Promise<ResearchArea>;
   updateResearchArea(id: string, area: Partial<InsertResearchArea>): Promise<ResearchArea | undefined>;
   deleteResearchArea(id: string): Promise<boolean>;
+
+  // Lab Info management
+  getLabInfo(): Promise<LabInfo | undefined>;
+  createOrUpdateLabInfo(info: InsertLabInfo): Promise<LabInfo>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -352,6 +357,31 @@ export class DatabaseStorage implements IStorage {
   async deleteResearchArea(id: string): Promise<boolean> {
     const [deletedArea] = await db.delete(researchAreas).where(eq(researchAreas.id, id)).returning();
     return !!deletedArea;
+  }
+
+  // Lab Info management  
+  async getLabInfo(): Promise<LabInfo | undefined> {
+    const [info] = await db.select().from(labInfo).limit(1);
+    return info;
+  }
+
+  async createOrUpdateLabInfo(infoData: InsertLabInfo): Promise<LabInfo> {
+    const existingInfo = await this.getLabInfo();
+    
+    if (existingInfo) {
+      const [info] = await db
+        .update(labInfo)
+        .set({ ...infoData, updatedAt: new Date() })
+        .where(eq(labInfo.id, 'lab_settings'))
+        .returning();
+      return info;
+    } else {
+      const [info] = await db
+        .insert(labInfo)
+        .values({ ...infoData, id: 'lab_settings' })
+        .returning();
+      return info;
+    }
   }
 }
 

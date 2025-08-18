@@ -10,6 +10,66 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <!-- Google Maps API -->
+    <script>
+      // Global function to initialize Google Maps
+      window.initGoogleMap = function() {
+        const mapContainer = document.getElementById('lab-map-container');
+        if (!mapContainer) return;
+
+        const lat = parseFloat(mapContainer.dataset.lat);
+        const lng = parseFloat(mapContainer.dataset.lng);
+        const title = mapContainer.dataset.title;
+        const address = mapContainer.dataset.address;
+
+        if (isNaN(lat) || isNaN(lng)) return;
+
+        // Clear placeholder content
+        mapContainer.innerHTML = '';
+
+        const map = new google.maps.Map(mapContainer, {
+          center: { lat, lng },
+          zoom: 17,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+        });
+
+        // Add marker
+        const marker = new google.maps.Marker({
+          position: { lat, lng },
+          map: map,
+          title: title,
+        });
+
+        // Add info window
+        const infoWindow = new google.maps.InfoWindow({
+          content: `
+            <div style="padding: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              <h3 style="margin: 0 0 4px 0; color: #1f2937; font-size: 14px; font-weight: 600;">${title}</h3>
+              <p style="margin: 0; color: #6b7280; font-size: 12px;">${address}</p>
+            </div>
+          `
+        });
+
+        marker.addListener('click', () => {
+          infoWindow.open(map, marker);
+        });
+
+        // Auto-open info window
+        infoWindow.open(map, marker);
+      };
+
+      // Initialize map when Google Maps loads
+      window.addEventListener('load', () => {
+        if (typeof google !== 'undefined' && google.maps) {
+          window.initGoogleMap();
+        }
+      });
+    </script>
+    <script async defer 
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAOVYRIgupAurZup5y1PRh8Ismb1A3lLao&libraries=places&callback=initGoogleMap">
+    </script>
     <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
     <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
   </body>
