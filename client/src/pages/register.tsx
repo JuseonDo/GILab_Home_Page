@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -38,8 +37,8 @@ export default function Register() {
   });
 
   const registerMutation = useMutation({
-    mutationFn: (data: RegisterFormData) => 
-      apiRequest("POST", "/api/auth/register", data),
+    mutationFn: (data: RegisterFormData) =>
+      apiRequest("POST", "/auth/register", data),
     onSuccess: () => {
       toast({
         title: "회원가입 성공",
@@ -106,10 +105,12 @@ export default function Register() {
                     name="firstName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>이름</FormLabel>
+                        <FormLabel htmlFor="register-firstName">이름</FormLabel>
                         <FormControl>
                           <Input
+                            id="register-firstName"
                             placeholder="이름"
+                            autoComplete="given-name"
                             data-testid="input-firstName"
                             {...field}
                           />
@@ -124,10 +125,12 @@ export default function Register() {
                     name="lastName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>성</FormLabel>
+                        <FormLabel htmlFor="register-lastName">성</FormLabel>
                         <FormControl>
                           <Input
+                            id="register-lastName"
                             placeholder="성"
+                            autoComplete="family-name"
                             data-testid="input-lastName"
                             {...field}
                           />
@@ -143,11 +146,13 @@ export default function Register() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>이메일</FormLabel>
+                      <FormLabel htmlFor="register-email">이메일</FormLabel>
                       <FormControl>
                         <Input
+                          id="register-email"
                           type="email"
                           placeholder="your@email.com"
+                          autoComplete="email"
                           data-testid="input-email"
                           {...field}
                         />
@@ -162,12 +167,14 @@ export default function Register() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>비밀번호</FormLabel>
+                      <FormLabel htmlFor="register-password">비밀번호</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
+                            id="register-password"
                             type={showPassword ? "text" : "password"}
                             placeholder="비밀번호를 입력하세요"
+                            autoComplete="new-password"
                             data-testid="input-password"
                             {...field}
                           />

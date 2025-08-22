@@ -1,24 +1,24 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, User, LogOut, Settings, Plus } from "lucide-react";
+import { Menu, X, User, LogOut, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useLogout } from "@/hooks/useLogout";  // ⬅️ 추가
 
 export default function Header() {
   const [location, setLocation] = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, isAuthenticated, refetch } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const logout = useLogout(); // ⬅️ 훅 사용
 
   const navigation = [
     { name: "Home", href: "/" },
@@ -33,24 +33,13 @@ export default function Header() {
     return location.startsWith(href);
   };
 
-  const logoutMutation = useMutation({
-    mutationFn: () => apiRequest("/api/auth/logout", { method: "POST" }),
-    onSuccess: () => {
-      toast({
-        title: "로그아웃 완료",
-        description: "안전하게 로그아웃되었습니다.",
-      });
-      refetch();
-      setLocation("/");
-    },
-    onError: () => {
-      toast({
-        title: "로그아웃 실패",
-        description: "로그아웃 중 오류가 발생했습니다.",
-        variant: "destructive",
-      });
-    },
-  });
+  const handleLogout = () => {
+    logout(); // 토큰 삭제 + 캐시 비움 + 라우팅
+    toast({
+      title: "로그아웃 완료",
+      description: "안전하게 로그아웃되었습니다.",
+    });
+  };
 
   return (
     <nav className="navbar-glass fixed w-full top-0 z-50 border-b border-gray-200" data-testid="navigation-header">
@@ -73,68 +62,63 @@ export default function Header() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  data-testid={`link-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
+                  data-testid={`link-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
                 >
                   <span
                     className={`px-3 py-2 text-sm font-medium transition-colors duration-200 cursor-pointer ${
-                      isActive(item.href)
-                        ? "text-lab-blue font-semibold"
-                        : "text-gray-700 hover:text-lab-blue"
+                      isActive(item.href) ? "text-lab-blue font-semibold" : "text-gray-700 hover:text-lab-blue"
                     }`}
                   >
                     {item.name}
                   </span>
                 </Link>
               ))}
-              
+
               {/* User Menu */}
               <div className="flex items-center space-x-4 ml-6 border-l border-gray-200 pl-6">
                 {isAuthenticated && user ? (
-                  <>
-
-                    
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="flex items-center gap-2" data-testid="button-user-menu">
-                          <User className="h-4 w-4" />
-                          <span>{user.firstName} {user.lastName}</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <User className="h-4 w-4 mr-2" />
-                          <span>{user.email}</span>
-                        </DropdownMenuItem>
-                        {user.isAdmin && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem asChild>
-                              <Link href="/admin" className="cursor-pointer w-full" data-testid="link-admin">
-                                <Settings className="h-4 w-4 mr-2" />
-                                <span>관리자 패널</span>
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href="/settings" className="cursor-pointer w-full" data-testid="link-settings">
-                                <Settings className="h-4 w-4 mr-2" />
-                                <span>실험실 설정</span>
-                              </Link>
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          onClick={() => logoutMutation.mutate()}
-                          disabled={logoutMutation.isPending}
-                          className="cursor-pointer text-red-600"
-                          data-testid="button-logout"
-                        >
-                          <LogOut className="h-4 w-4 mr-2" />
-                          <span>로그아웃</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="flex items-center gap-2" data-testid="button-user-menu">
+                        <User className="h-4 w-4" />
+                        <span>
+                          {user.firstName} {user.lastName}
+                        </span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem>
+                        <User className="h-4 w-4 mr-2" />
+                        <span>{user.email}</span>
+                      </DropdownMenuItem>
+                      {user.isAdmin && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem asChild>
+                            <Link href="/admin" className="cursor-pointer w-full" data-testid="link-admin">
+                              <Settings className="h-4 w-4 mr-2" />
+                              <span>관리자 패널</span>
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href="/settings" className="cursor-pointer w-full" data-testid="link-settings">
+                              <Settings className="h-4 w-4 mr-2" />
+                              <span>실험실 설정</span>
+                            </Link>
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={handleLogout}
+                        className="cursor-pointer text-red-600"
+                        data-testid="button-logout"
+                      >
+                        <LogOut className="h-4 w-4 mr-2" />
+                        <span>로그아웃</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 ) : (
                   <div className="flex items-center space-x-2">
                     <Link href="/login">
@@ -161,11 +145,7 @@ export default function Header() {
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               data-testid="button-mobile-menu"
             >
-              {isMenuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
+              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </Button>
           </div>
         </div>
@@ -180,20 +160,18 @@ export default function Header() {
                 key={item.name}
                 href={item.href}
                 onClick={() => setIsMenuOpen(false)}
-                data-testid={`link-mobile-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
+                data-testid={`link-mobile-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
               >
                 <span
                   className={`block px-3 py-2 text-base font-medium cursor-pointer ${
-                    isActive(item.href)
-                      ? "text-lab-blue bg-gray-50"
-                      : "text-gray-700 hover:text-lab-blue hover:bg-gray-50"
+                    isActive(item.href) ? "text-lab-blue bg-gray-50" : "text-gray-700 hover:text-lab-blue hover:bg-gray-50"
                   }`}
                 >
                   {item.name}
                 </span>
               </Link>
             ))}
-            
+
             {/* Mobile User Menu */}
             <div className="border-t border-gray-200 pt-3 mt-3">
               {isAuthenticated && user ? (
@@ -223,10 +201,9 @@ export default function Header() {
                   )}
                   <button
                     onClick={() => {
-                      logoutMutation.mutate();
+                      handleLogout();
                       setIsMenuOpen(false);
                     }}
-                    disabled={logoutMutation.isPending}
                     className="block w-full text-left px-3 py-2 text-base font-medium text-red-600 hover:bg-gray-50"
                     data-testid="button-mobile-logout"
                   >

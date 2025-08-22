@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import type { LabInfo } from "@shared/schema";
+import type { LabInfo } from "@/shared/schema";
 
 const labInfoSchema = z.object({
   labName: z.string().min(1, "Lab name is required"),
@@ -47,7 +47,7 @@ export default function Settings() {
 
   // Fetch lab info
   const { data: labInfo, isLoading } = useQuery<LabInfo | null>({
-    queryKey: ["/api/lab-info"],
+    queryKey: ["/lab-info"],
   });
 
   const form = useForm<LabInfoFormData>({
@@ -125,7 +125,7 @@ export default function Settings() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/lab-info"] });
+      queryClient.invalidateQueries({ queryKey: ["/lab-info"] });
       toast({
         title: "Success",
         description: "Lab information updated successfully",
@@ -148,7 +148,7 @@ export default function Settings() {
   useEffect(() => {
     if (!window.google && !document.querySelector('script[src*="maps.googleapis.com"]')) {
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`;
+      script.src = `https://maps.googleapis.com/maps/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`;
       script.async = true;
       script.onload = () => setMapLoaded(true);
       document.head.appendChild(script);

@@ -23,19 +23,19 @@ export default function Admin() {
   const queryClient = useQueryClient();
 
   const { data: pendingUsers, isLoading: isPendingUsersLoading } = useQuery<PendingUser[]>({
-    queryKey: ["/api/admin/pending-users"],
+    queryKey: ["/admin/pending-users"],
     enabled: user?.isAdmin,
   });
 
   const approveUserMutation = useMutation({
     mutationFn: (userId: string) =>
-      apiRequest("POST", `/api/admin/approve-user/${userId}`),
+      apiRequest("POST", `/admin/approve-user/${userId}`),
     onSuccess: () => {
       toast({
         title: "사용자 승인 완료",
         description: "사용자가 성공적으로 승인되었습니다.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/pending-users"] });
+      queryClient.invalidateQueries({ queryKey: ["/admin/pending-users"] });
     },
     onError: (error: any) => {
       toast({

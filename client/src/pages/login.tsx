@@ -9,17 +9,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
 const loginSchema = z.object({
-  email: z.string().email("올바른 이메일을 입력해주세요"),
+  email: z.string(),
   password: z.string().min(6, "비밀번호는 최소 6자 이상이어야 합니다"),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
+
+type LoginResponse = {
+  access_token: string;
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    isAdmin: boolean;
+    isApproved: boolean;
+  };
+};
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -29,20 +40,15 @@ export default function Login() {
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
+    defaultValues: { email: "", password: "" },
   });
 
   const loginMutation = useMutation({
-    mutationFn: (data: LoginFormData) => 
-      apiRequest("POST", "/api/auth/login", data),
-    onSuccess: () => {
-      toast({
-        title: "로그인 성공",
-        description: "환영합니다!",
-      });
+    mutationFn: (data: LoginFormData) =>
+      apiRequest<LoginResponse>("POST", "/auth/login", data),
+    onSuccess: (data) => {
+      localStorage.setItem("access_token", data.access_token);
+      toast({ title: "로그인 성공", description: "환영합니다!" });
       refetch();
       setLocation("/");
     },
@@ -55,9 +61,7 @@ export default function Login() {
     },
   });
 
-  const onSubmit = (data: LoginFormData) => {
-    loginMutation.mutate(data);
-  };
+  const onSubmit = (data: LoginFormData) => loginMutation.mutate(data);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4">
@@ -79,11 +83,13 @@ export default function Login() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>이메일</FormLabel>
+                      <FormLabel htmlFor="login-email">이메일</FormLabel>
                       <FormControl>
                         <Input
-                          type="email"
+                          id="login-email"
+                          type="text"
                           placeholder="your@email.com"
+                          autoComplete="email"
                           data-testid="input-email"
                           {...field}
                         />
@@ -92,18 +98,19 @@ export default function Login() {
                     </FormItem>
                   )}
                 />
-                
                 <FormField
                   control={form.control}
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>비밀번호</FormLabel>
+                      <FormLabel htmlFor="login-password">비밀번호</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
+                            id="login-password"
                             type={showPassword ? "text" : "password"}
                             placeholder="비밀번호를 입력하세요"
+                            autoComplete="current-password"
                             data-testid="input-password"
                             {...field}
                           />
@@ -115,11 +122,7 @@ export default function Login() {
                             onClick={() => setShowPassword(!showPassword)}
                             data-testid="button-toggle-password"
                           >
-                            {showPassword ? (
-                              <EyeOff className="h-4 w-4 text-slate-400" />
-                            ) : (
-                              <Eye className="h-4 w-4 text-slate-400" />
-                            )}
+                            {showPassword ? <EyeOff className="h-4 w-4 text-slate-400" /> : <Eye className="h-4 w-4 text-slate-400" />}
                           </Button>
                         </div>
                       </FormControl>
@@ -127,18 +130,11 @@ export default function Login() {
                     </FormItem>
                   )}
                 />
-
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={loginMutation.isPending}
-                  data-testid="button-login"
-                >
+                <Button type="submit" className="w-full" disabled={loginMutation.isPending} data-testid="button-login">
                   {loginMutation.isPending ? "로그인 중..." : "로그인"}
                 </Button>
               </form>
             </Form>
-
             <div className="mt-6 text-center">
               <p className="text-sm text-slate-600">
                 계정이 없으신가요?{" "}

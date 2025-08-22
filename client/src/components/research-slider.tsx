@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { ResearchProject } from "@shared/schema";
+import type { ResearchProject } from "@/shared/schema";
 
 interface ResearchSliderProps {
   projects: ResearchProject[];

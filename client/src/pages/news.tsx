@@ -13,8 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Calendar, Clock, User, Plus } from "lucide-react";
 import { Link } from "wouter";
-import type { News, InsertNews } from "@shared/schema";
-import { insertNewsSchema } from "@shared/schema";
+import type { News, InsertNews } from "@/shared/schema";
+import { insertNewsSchema } from "@/shared/schema";
 import { useAuth } from "@/hooks/useAuth";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -27,7 +27,7 @@ export default function NewsPage() {
   const queryClient = useQueryClient();
   
   const { data: news = [], isLoading, error } = useQuery<News[]>({
-    queryKey: ["/api/news"],
+    queryKey: ["/news"],
   });
 
   const form = useForm<InsertNews>({
@@ -42,10 +42,10 @@ export default function NewsPage() {
 
   const createNewsMutation = useMutation({
     mutationFn: async (data: InsertNews) => {
-      return apiRequest("/api/news", "POST", data);
+      return apiRequest("POST", "/news", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/news"] });
+      queryClient.invalidateQueries({ queryKey: ["/news"] });
       setIsCreateDialogOpen(false);
       form.reset();
       toast({
@@ -81,7 +81,7 @@ export default function NewsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
             <h1 className="text-4xl lg:text-5xl font-bold mb-6" data-testid="text-news-title">
               Latest News

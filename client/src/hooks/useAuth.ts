@@ -1,37 +1,20 @@
+// src/hooks/useAuth.ts
 import { useQuery } from "@tanstack/react-query";
-
-interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  isAdmin: boolean;
-  isApproved: boolean;
-}
+import { apiClient } from "../lib/queryClient"; // apiClient 임포트 추가
 
 export function useAuth() {
-  const { data: user, isLoading, refetch, error } = useQuery<User>({
-    queryKey: ["/api/auth/user"],
+  const { data: user, isLoading, refetch, error } = useQuery<User | null>({
+    queryKey: ["/auth/user"],
     retry: false,
     queryFn: async () => {
-      const response = await fetch("/api/auth/user");
-      if (response.status === 401) {
-        // Return null for unauthenticated users instead of throwing an error
-        return null;
-      }
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      return response.json();
-    }
+      const token = localStorage.getItem("access_token");
+      const res = await fetch("/api/auth/user", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.status === 401) return null;      // 비로그인으로 처리
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    },
   });
-
-  return {
-    user: user || null,
-    isLoading,
-    isAuthenticated: !!user,
-    isAdmin: user?.isAdmin || false,
-    refetch,
-    error,
-  };
+  return { user, isLoading, refetch, error, isAuthenticated: !!user, isAdmin: user?.isAdmin };
 }
