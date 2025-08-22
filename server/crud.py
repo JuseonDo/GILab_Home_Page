@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc, asc
 import models, schemas
 from typing import List, Optional, Dict
@@ -34,12 +34,18 @@ def approve_user(db: Session, user_id: str) -> Optional[models.User]:
 
 # --- Publication CRUD ---
 def get_all_publications_with_authors(db: Session) -> List[models.Publication]:
-    # displayOrder가 있으면 우선, 없으면 year desc
-    return db.query(models.Publication).order_by(asc(models.Publication.displayOrder)).all()
+    # authors를 eager-load 해서 응답에 항상 포함
+    return (
+        db.query(models.Publication)
+        .options(joinedload(models.Publication.authors))
+        .order_by(asc(models.Publication.displayOrder))
+        .all()
+    )
 
 def get_publications_by_year(db: Session, year: str) -> List[models.Publication]:
     return (
         db.query(models.Publication)
+        .options(joinedload(models.Publication.authors))
         .filter(models.Publication.year == year)
         .order_by(asc(models.Publication.displayOrder))
         .all()
@@ -48,6 +54,7 @@ def get_publications_by_year(db: Session, year: str) -> List[models.Publication]
 def get_recent_publications(db: Session, limit: int = 5) -> List[models.Publication]:
     return (
         db.query(models.Publication)
+        .options(joinedload(models.Publication.authors))
         .order_by(desc(models.Publication.year), asc(models.Publication.displayOrder))
         .limit(limit)
         .all()
@@ -69,7 +76,7 @@ def create_publication(
     db.flush()  # id 확보
 
     # 2) Authors: order -> displayOrder, 기본값은 enumerate 인덱스
-    for idx, author_data in enumerate(authors_data):
+    for idx, author_data in enumerate(authors_data or []):
         a_payload = author_data.dict(exclude_unset=True)
         a_display_order = a_payload.pop("order", idx)
         a_payload["displayOrder"] = a_display_order
@@ -84,22 +91,57 @@ def create_publication(
     db.refresh(db_publication)
     return db_publication
 
-def update_publication(db: Session, publication_id: str, publication: schemas.PublicationCreate) -> Optional[models.Publication]:
-    db_publication = db.query(models.Publication).filter(models.Publication.id == publication_id).first()
+def update_publication(
+    db: Session,
+    publication_id: str,
+    publication: schemas.PublicationUpdate,
+    authors_data: Optional[List[schemas.AuthorCreate]] = None,
+) -> Optional[models.Publication]:
+    """
+    - 기본 필드 업데이트 (order -> displayOrder 매핑)
+    - authors 갱신 로직:
+      - authors_data 파라미터가 오면 그걸 사용
+      - 없으면 publication.authors_data 또는 publication.authors 중 들어온 것을 사용
+      - 아무것도 없으면 저자 목록은 변경하지 않음
+    """
+    db_publication = (
+        db.query(models.Publication)
+        .options(joinedload(models.Publication.authors))
+        .filter(models.Publication.id == publication_id)
+        .first()
+    )
     if not db_publication:
         return None
 
-    updates = publication.dict(exclude_unset=True)
+    # 기본 필드 업데이트
+    updates = publication.dict(exclude_unset=True, exclude={"authors", "authors_data"})
     if "order" in updates:
         updates["displayOrder"] = updates.pop("order")
-
     for key, value in updates.items():
         setattr(db_publication, key, value)
+
+    # authors 갱신
+    effective_authors = authors_data
+    if effective_authors is None:
+        if getattr(publication, "authors_data", None) is not None:
+            effective_authors = publication.authors_data
+        elif getattr(publication, "authors", None) is not None:
+            effective_authors = publication.authors
+
+    if effective_authors is not None:
+        # 기존 authors 삭제
+        db.query(models.Author).filter(models.Author.publicationId == publication_id).delete()
+        # 새 authors 추가
+        for idx, author_data in enumerate(effective_authors):
+            a_payload = author_data.dict(exclude_unset=True)
+            a_display_order = a_payload.pop("order", idx)
+            a_payload["displayOrder"] = a_display_order
+            db_author = models.Author(**a_payload, publicationId=publication_id)
+            db.add(db_author)
 
     db.commit()
     db.refresh(db_publication)
     return db_publication
-
 
 def update_publication_order(db: Session, publication_id: str, order: int) -> Optional[models.Publication]:
     db_publication = db.query(models.Publication).filter(models.Publication.id == publication_id).first()
@@ -109,7 +151,6 @@ def update_publication_order(db: Session, publication_id: str, order: int) -> Op
     db.commit()
     db.refresh(db_publication)
     return db_publication
-
 
 def delete_publication(db: Session, publication_id: str) -> bool:
     db_publication = db.query(models.Publication).filter(models.Publication.id == publication_id).first()
@@ -175,24 +216,12 @@ def delete_news(db: Session, news_id: str) -> bool:
 
 # --- Member CRUD ---
 def get_members(db: Session) -> List[models.Member]:
-    """일반 목록: 이름으로만 정렬(스키마 추가 없이 안전)"""
     return db.query(models.Member).order_by(asc(models.Member.name)).all()
 
 def get_members_by_degree_level(db: Session) -> Dict[str, List[models.Member]]:
-    """
-    그룹핑된 목록을 dict으로 반환.
-    DB 스키마 변경 없이 안전하게 이름 기준 정렬 후 파이썬에서 그룹핑.
-    """
     members = db.query(models.Member).order_by(asc(models.Member.name)).all()
-    grouped = {
-        "masters": [],
-        "bachelors": [],
-        "phd": [],
-        "other": [],
-        "alumni": [],
-    }
+    grouped = {"masters": [], "bachelors": [], "phd": [], "other": [], "alumni": []}
     for m in members:
-        # 상태가 졸업/alumni면 별도 버킷으로
         if (m.status or "").lower() == "alumni":
             grouped["alumni"].append(m)
             continue
