@@ -31,7 +31,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { X, Plus, ChevronDown, ChevronUp, Upload } from "lucide-react";
+import { X, Plus, ChevronDown, ChevronUp, Upload, Edit, Trash2 } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -156,7 +156,7 @@ export default function ResearchPage() {
   const researchAreasQuery = useQuery<ResearchArea[]>({
     queryKey: ["/research-areas"],
     queryFn: async () => {
-      const r = await fetch("/api/research-areas");
+      const r = await fetch("/api/research-areas/");
       if (r.status === 404) return [];
       if (!r.ok) throw new Error("Failed to fetch research areas");
       return r.json();
@@ -176,6 +176,7 @@ export default function ResearchPage() {
   /* ====== 토글 ====== */
   const [showAddArea, setShowAddArea] = useState(false);
   const [showAddPub, setShowAddPub] = useState(false);
+  const [editingAreaId, setEditingAreaId] = useState<string | null>(null);
 
   /* ====== 연구분야 폼/생성 ====== */
   const areaFormSchema = z.object({
@@ -200,9 +201,21 @@ export default function ResearchPage() {
     },
   });
 
+  const editAreaForm = useForm<AreaForm>({
+    resolver: zodResolver(areaFormSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      imageUrl: "",
+      order: 0,
+      parentId: "",
+      isActive: true,
+    },
+  });
+
   const createAreaMutation = useMutation({
     mutationFn: async (data: AreaForm) => {
-      return apiRequest("POST", "/research-areas", {
+      return apiRequest("POST", "/research-areas/", {
         name: data.name,
         description: data.description || "",
         imageUrl: data.imageUrl || "",
@@ -225,10 +238,56 @@ export default function ResearchPage() {
       setShowAddArea(false);
     },
     onError: async (e: any) => {
-      console.error("[publications] mutation error:", e);
+      console.error("[research-areas] mutation error:", e);
       const desc = await parseErrorMessage(e);
       toast({
-        title: "논문 추가 실패",
+        title: "연구분야 추가 실패",
+        description: desc,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateAreaMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: AreaForm }) => {
+      return apiRequest("PUT", `/research-areas/${id}`, {
+        name: data.name,
+        description: data.description || "",
+        imageUrl: data.imageUrl || "",
+        order: Number(data.order || 0),
+        parentId: data.parentId || undefined,
+        isActive: data.isActive ?? true,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "연구분야가 수정되었습니다." });
+      qc.invalidateQueries({ queryKey: ["/research-areas"] });
+      setEditingAreaId(null);
+    },
+    onError: async (e: any) => {
+      console.error("[research-areas] update error:", e);
+      const desc = await parseErrorMessage(e);
+      toast({
+        title: "연구분야 수정 실패",
+        description: desc,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteAreaMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/research-areas/${id}`, {});
+    },
+    onSuccess: () => {
+      toast({ title: "연구분야가 삭제되었습니다." });
+      qc.invalidateQueries({ queryKey: ["/research-areas"] });
+    },
+    onError: async (e: any) => {
+      console.error("[research-areas] delete error:", e);
+      const desc = await parseErrorMessage(e);
+      toast({
+        title: "연구분야 삭제 실패",
         description: desc,
         variant: "destructive",
       });
@@ -250,10 +309,17 @@ export default function ResearchPage() {
       authors: [{ nameHtml: "", homepage: "" }],
     },
   });
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, move } = useFieldArray({
     control: pubForm.control,
     name: "authors",
   });
+
+  // 저자 순서 변경 함수
+  const moveAuthor = (fromIndex: number, toIndex: number) => {
+    if (toIndex >= 0 && toIndex < fields.length) {
+      move(fromIndex, toIndex);
+    }
+  };
 
   // 이미지 업로드(생성)
   const [uploadingCreate, setUploadingCreate] = useState(false);
@@ -292,9 +358,10 @@ export default function ResearchPage() {
         imageUrl: data.imageUrl || "", // 업로드된 경로
         order: data.order ?? 0,
       };
-      const authors_data = (data.authors ?? []).map((a) => ({
+      const authors_data = (data.authors ?? []).map((a, index) => ({
         name: a.nameHtml || "",
         homepage: a.homepage || "",
+        order: index, // 저자 순서 정보 추가
       }));
       return apiRequest("POST", "/publications", {
         publication_data,
@@ -348,10 +415,18 @@ export default function ResearchPage() {
     fields: editAuthorFields,
     append: editAuthorAppend,
     remove: editAuthorRemove,
+    move: editAuthorMove,
   } = useFieldArray({
     control: pubEditForm.control,
     name: "authors",
   });
+
+  // 저자 순서 변경 함수 (수정용)
+  const moveEditAuthor = (fromIndex: number, toIndex: number) => {
+    if (toIndex >= 0 && toIndex < editAuthorFields.length) {
+      editAuthorMove(fromIndex, toIndex);
+    }
+  };
 
   // 이미지 업로드(수정)
   const [uploadingEdit, setUploadingEdit] = useState(false);
@@ -393,9 +468,10 @@ export default function ResearchPage() {
         imageUrl: data.imageUrl || "",
         order: data.order ?? 0,
         // ✅ 백엔드가 authors / authors_data 어느 쪽이든 받게 하려면 authors로 통일
-        authors: (data.authors ?? []).map((a) => ({
+        authors: (data.authors ?? []).map((a, index) => ({
           name: a.nameHtml || "",
           homepage: a.homepage || "",
+          order: index, // 저자 순서 정보 추가
         })),
       };
       return apiRequest("PUT", `/publications/${id}`, body);
@@ -467,22 +543,232 @@ export default function ResearchPage() {
           ) : researchAreasQuery.data && researchAreasQuery.data.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {researchAreasQuery.data.map((area) => (
-                <Card key={area.id}>
-                  <CardHeader>
-                    <CardTitle className="text-base">{area.name}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {area.description ? (
-                      <p className="text-sm text-muted-foreground line-clamp-3">{area.description}</p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">설명이 없습니다.</p>
-                    )}
-                  </CardContent>
-                </Card>
+                <div key={area.id}>
+                  <Card className="group relative">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between">
+                        <CardTitle className="text-base">{area.name}</CardTitle>
+                        {isAdmin && (
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                if (editingAreaId === area.id) {
+                                  setEditingAreaId(null);
+                                } else {
+                                  editAreaForm.reset({
+                                    name: area.name || "",
+                                    description: area.description || "",
+                                    imageUrl: area.imageUrl || "",
+                                    order: area.order || 0,
+                                    parentId: area.parentId || "",
+                                    isActive: area.isActive ?? true,
+                                  });
+                                  setEditingAreaId(area.id);
+                                }
+                              }}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                if (confirm("정말로 이 연구분야를 삭제하시겠습니까?")) {
+                                  deleteAreaMutation.mutate(area.id);
+                                }
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {area.description ? (
+                        <p className="text-sm text-muted-foreground line-clamp-3">{area.description}</p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">설명이 없습니다.</p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* 수정 폼 */}
+                  {isAdmin && editingAreaId === area.id && (
+                    <Card className="mt-3">
+                      <CardContent className="pt-6">
+                        <Form {...editAreaForm}>
+                          <form
+                            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                            onSubmit={editAreaForm.handleSubmit((v) =>
+                              updateAreaMutation.mutate({ id: area.id, data: v })
+                            )}
+                          >
+                            <FormField
+                              control={editAreaForm.control}
+                              name="name"
+                              render={({ field }) => (
+                                <FormItem className="md:col-span-2">
+                                  <FormLabel>연구분야명</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={editAreaForm.control}
+                              name="description"
+                              render={({ field }) => (
+                                <FormItem className="md:col-span-2">
+                                  <FormLabel>설명</FormLabel>
+                                  <FormControl>
+                                    <Textarea {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={editAreaForm.control}
+                              name="imageUrl"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>이미지 URL (선택)</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={editAreaForm.control}
+                              name="order"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>순서</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      min={0}
+                                      {...field}
+                                      onChange={(e) => field.onChange(Number(e.target.value))}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <div className="md:col-span-2 flex justify-end gap-2">
+                              <Button type="button" variant="outline" onClick={() => setEditingAreaId(null)}>
+                                취소
+                              </Button>
+                              <Button type="submit" disabled={updateAreaMutation.isPending}>
+                                수정
+                              </Button>
+                            </div>
+                          </form>
+                        </Form>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               ))}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">등록된 연구분야가 없습니다.</p>
+          )}
+
+          {/* (어드민) 연구분야 추가 폼 */}
+          {isAdmin && showAddArea && (
+            <Card className="mt-6">
+              <CardContent className="pt-6">
+                <Form {...areaForm}>
+                  <form
+                    className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                    onSubmit={areaForm.handleSubmit((v) => createAreaMutation.mutate(v))}
+                  >
+                    <FormField
+                      control={areaForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel>연구분야명</FormLabel>
+                          <FormControl>
+                            <Input placeholder="연구분야 이름을 입력하세요" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={areaForm.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel>설명</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="연구분야에 대한 설명을 입력하세요" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={areaForm.control}
+                      name="imageUrl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>이미지 URL (선택)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://..." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={areaForm.control}
+                      name="order"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>순서</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={0}
+                              {...field}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="md:col-span-2 flex justify-end gap-2">
+                      <Button type="button" variant="outline" onClick={() => setShowAddArea(false)}>
+                        취소
+                      </Button>
+                      <Button type="submit" disabled={createAreaMutation.isPending}>
+                        추가
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
           )}
         </section>
 
@@ -696,7 +982,29 @@ export default function ResearchPage() {
                                 </FormItem>
                               )}
                             />
-                            <div className="md:col-span-2 flex justify-end">
+                            <div className="md:col-span-2 flex justify-between items-center">
+                              <div className="flex gap-1">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => moveAuthor(i, i - 1)}
+                                  disabled={i === 0}
+                                  aria-label="위로 이동"
+                                >
+                                  <ChevronUp className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => moveAuthor(i, i + 1)}
+                                  disabled={i === fields.length - 1}
+                                  aria-label="아래로 이동"
+                                >
+                                  <ChevronDown className="w-4 h-4" />
+                                </Button>
+                              </div>
                               <Button
                                 type="button"
                                 size="icon"
@@ -984,7 +1292,29 @@ export default function ResearchPage() {
                                                 </FormItem>
                                               )}
                                             />
-                                            <div className="md:col-span-2 flex justify-end">
+                                            <div className="md:col-span-2 flex justify-between items-center">
+                                              <div className="flex gap-1">
+                                                <Button
+                                                  type="button"
+                                                  size="sm"
+                                                  variant="outline"
+                                                  onClick={() => moveEditAuthor(i, i - 1)}
+                                                  disabled={i === 0}
+                                                  aria-label="위로 이동"
+                                                >
+                                                  <ChevronUp className="w-4 h-4" />
+                                                </Button>
+                                                <Button
+                                                  type="button"
+                                                  size="sm"
+                                                  variant="outline"
+                                                  onClick={() => moveEditAuthor(i, i + 1)}
+                                                  disabled={i === editAuthorFields.length - 1}
+                                                  aria-label="아래로 이동"
+                                                >
+                                                  <ChevronDown className="w-4 h-4" />
+                                                </Button>
+                                              </div>
                                               <Button
                                                 type="button"
                                                 size="icon"

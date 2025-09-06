@@ -266,20 +266,20 @@ def delete_member(db: Session, member_id: str) -> bool:
 
 # --- Research Area CRUD ---
 def get_all_research_areas(db: Session) -> List[models.ResearchArea]:
-    return db.query(models.ResearchArea).order_by(asc(models.ResearchArea.order)).all()
+    return db.query(models.ResearchArea).order_by(asc(models.ResearchArea.displayOrder)).all()
 
 def get_research_areas_by_parent(db: Session, parent_id: Optional[str] = None) -> List[models.ResearchArea]:
     if parent_id is None:
         return (
             db.query(models.ResearchArea)
             .filter(models.ResearchArea.parentId == None)  # noqa: E711
-            .order_by(asc(models.ResearchArea.order))
+            .order_by(asc(models.ResearchArea.displayOrder))
             .all()
         )
     return (
         db.query(models.ResearchArea)
         .filter(models.ResearchArea.parentId == parent_id)
-        .order_by(asc(models.ResearchArea.order))
+        .order_by(asc(models.ResearchArea.displayOrder))
         .all()
     )
 
@@ -287,7 +287,10 @@ def get_research_area_by_id(db: Session, area_id: str) -> Optional[models.Resear
     return db.query(models.ResearchArea).filter(models.ResearchArea.id == area_id).first()
 
 def create_research_area(db: Session, area: schemas.ResearchAreaCreate) -> models.ResearchArea:
-    db_area = models.ResearchArea(**area.dict(exclude_unset=True))
+    area_payload = area.dict(exclude_unset=True)
+    area_display_order = area_payload.pop("order", 0)
+    area_payload["displayOrder"] = area_display_order
+    db_area = models.ResearchArea(**area_payload)
     db.add(db_area)
     db.commit()
     db.refresh(db_area)
@@ -297,7 +300,10 @@ def update_research_area(db: Session, area_id: str, area: schemas.ResearchAreaCr
     db_area = db.query(models.ResearchArea).filter(models.ResearchArea.id == area_id).first()
     if not db_area:
         return None
-    for key, value in area.dict(exclude_unset=True).items():
+    updates = area.dict(exclude_unset=True)
+    if "order" in updates:
+        updates["displayOrder"] = updates.pop("order")
+    for key, value in updates.items():
         setattr(db_area, key, value)
     db.commit()
     db.refresh(db_area)

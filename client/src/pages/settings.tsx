@@ -12,6 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import type { LabInfo } from "@/shared/schema";
 
 const labInfoSchema = z.object({
@@ -48,6 +49,14 @@ export default function Settings() {
   // Fetch lab info
   const { data: labInfo, isLoading } = useQuery<LabInfo | null>({
     queryKey: ["/lab-info"],
+    queryFn: async () => {
+      try {
+        return await apiRequest("GET", "/lab-info");
+      } catch (error: any) {
+        if (error?.status === 404) return null;
+        throw error;
+      }
+    },
   });
 
   const form = useForm<LabInfoFormData>({
@@ -109,20 +118,7 @@ export default function Settings() {
   // Update mutation
   const updateMutation = useMutation({
     mutationFn: async (data: LabInfoFormData) => {
-      const response = await fetch("/api/lab-info", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-      
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error || "Failed to update lab information");
-      }
-      
-      return response.json();
+      return await apiRequest("PUT", "/lab-info", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/lab-info"] });

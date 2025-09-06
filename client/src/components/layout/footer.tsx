@@ -8,10 +8,10 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
             <h3 className="text-xl font-bold mb-4" data-testid="text-lab-title">
-              Advanced Research Laboratory
+              Generative Intelligence Lab
             </h3>
             <p className="text-gray-300 mb-4" data-testid="text-lab-description">
-              Leading innovation in AI, robotics, and biotechnology through cutting-edge research and collaboration.
+              Pioneering research in artificial intelligence, machine learning, and computational sciences to shape the future of technology.
             </p>
             <div className="flex space-x-4">
               <a href="#" className="text-gray-400 hover:text-white transition-colors" data-testid="link-twitter">
@@ -57,15 +57,15 @@ export default function Footer() {
             <div className="text-gray-300 space-y-2">
               <p className="flex items-center" data-testid="text-contact-email">
                 <Mail className="h-4 w-4 mr-2" />
-                contact@advancedresearchlab.ac.kr
+                jingun.kwon@cnu.ac.kr
               </p>
               <p className="flex items-center" data-testid="text-contact-phone">
                 <Phone className="h-4 w-4 mr-2" />
-                +82-2-1234-5678
+                +82 42-821-5449
               </p>
               <p className="flex items-center" data-testid="text-contact-location">
                 <MapPin className="h-4 w-4 mr-2" />
-                Seoul, South Korea
+                Daejeon, South Korea
               </p>
             </div>
           </div>

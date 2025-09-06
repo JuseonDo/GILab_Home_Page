@@ -68,25 +68,50 @@ export default function RecentNewsSection() {
             <div className="text-center mb-16">
               <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">Recent News</h2>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Stay updated with the latest developments.
+                Stay updated with the latest news.
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
               {newsQuery.data.map((n: any) => (
-                <div key={n.id} className="bg-gray-50 rounded-xl overflow-hidden hover:shadow-lg transition-shadow">
-                  {n.imageUrl && (
-                    <div className="aspect-video bg-gray-200">
-                      <img
-                        src={n.imageUrl}
-                        alt={n.title}
-                        loading="lazy"
-                        decoding="async"
-                        className="w-full h-full object-cover"
-                      />
+                <Link key={n.id} href={`/news/${n.id}`} className="block">
+                  <div className="bg-gray-50 rounded-xl overflow-hidden hover:shadow-lg transition-shadow">
+                    {n.imageUrl && (
+                      <div className="aspect-video bg-gray-200">
+                        <img
+                          src={n.imageUrl}
+                          alt={n.title}
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                    <div className="p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                        {n.title}
+                      </h3>
+                      {n.summary && (
+                        <p className="text-gray-600 text-sm line-clamp-3 mb-4">
+                          {n.summary}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span>
+                          {new Date(n.publishedAt).toLocaleDateString('ko-KR', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </span>
+                        {n.author && (
+                          <span>
+                            {n.author.firstName} {n.author.lastName}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  )}
-                  {/* ...뉴스 카드 본문을 기존 코드로 채우세요... */}
-                </div>
+                  </div>
+                </Link>
               ))}
             </div>
             <div className="text-center">

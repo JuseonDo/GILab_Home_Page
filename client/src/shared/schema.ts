@@ -208,6 +208,7 @@ export type ResearchProject = typeof researchProjects.$inferSelect;
 export type Member = typeof members.$inferSelect;
 export type ResearchArea = typeof researchAreas.$inferSelect;
 export type News = typeof news.$inferSelect;
+export type LabInfo = typeof labInfo.$inferSelect;
 
 export type InsertPublication = z.infer<typeof insertPublicationSchema>;
 export type InsertAuthor = z.infer<typeof insertAuthorSchema>;

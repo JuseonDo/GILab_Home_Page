@@ -182,8 +182,7 @@ class MemberUpdate(BaseModel):
 
 class MemberResponse(MemberBase):
     id: str
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class GroupedMembersResponse(BaseModel):
     masters: List[MemberResponse] = []
@@ -250,11 +249,3 @@ class LabInfoResponse(LabInfoBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-# =======================
-# Contact Form
-# =======================
-class ContactForm(BaseModel):
-    name: str
-    email: EmailStr
-    subject: str
-    message: str

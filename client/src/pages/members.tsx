@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Linkedin, Mail, ExternalLink, Plus, User, Phone, Edit, Upload, MapPin } from "lucide-react";
+import { Linkedin, Mail, ExternalLink, Plus, User, Phone, Edit, Upload, MapPin, Trash2 } from "lucide-react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import { Button } from "@/components/ui/button";
@@ -63,8 +63,11 @@ export default function MembersPage() {
   const queryClient = useQueryClient();
   const [showAddForm, setShowAddForm] = useState(false);
   const [showEditProfessor, setShowEditProfessor] = useState(false);
+  const [showEditMember, setShowEditMember] = useState(false);
+  const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [memberPreviewUrl, setMemberPreviewUrl] = useState<string>("");
 
   // ====== Queries ======
   const { data: membersByLevelRaw, isLoading } = useQuery<{
@@ -106,7 +109,11 @@ export default function MembersPage() {
   const form = useForm<MemberFormData>({
     resolver: zodResolver(memberSchema),
     defaultValues: { name: "", degree: "masters", email: "", imageUrl: "", homepage: "", bio: "", joinedAt: "", status: "current" },
+  });
 
+  const editForm = useForm<MemberFormData>({
+    resolver: zodResolver(memberSchema),
+    defaultValues: { name: "", degree: "masters", email: "", imageUrl: "", homepage: "", bio: "", joinedAt: "", status: "current" },
   });
 
   const professorForm = useForm<ProfessorFormData>({
@@ -141,6 +148,31 @@ export default function MembersPage() {
     },
     onError: (error: any) => {
       toast({ title: "멤버 추가 실패", description: error?.message || "멤버 추가 중 오류가 발생했습니다.", variant: "destructive" });
+    },
+  });
+
+  const updateMemberMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: MemberFormData }) => apiRequest("PUT", `/members/${id}`, data),
+    onSuccess: () => {
+      toast({ title: "멤버 수정 완료", description: "멤버 정보가 성공적으로 수정되었습니다." });
+      queryClient.invalidateQueries({ queryKey: ["/members"] });
+      setShowEditMember(false);
+      setEditingMember(null);
+      editForm.reset();
+    },
+    onError: (error: any) => {
+      toast({ title: "멤버 수정 실패", description: error?.message || "멤버 수정 중 오류가 발생했습니다.", variant: "destructive" });
+    },
+  });
+
+  const deleteMemberMutation = useMutation({
+    mutationFn: (memberId: string) => apiRequest("DELETE", `/members/${memberId}`),
+    onSuccess: () => {
+      toast({ title: "멤버 삭제 완료", description: "멤버가 성공적으로 삭제되었습니다." });
+      queryClient.invalidateQueries({ queryKey: ["/members"] });
+    },
+    onError: (error: any) => {
+      toast({ title: "멤버 삭제 실패", description: error?.message || "멤버 삭제 중 오류가 발생했습니다.", variant: "destructive" });
     },
   });
 
@@ -192,7 +224,29 @@ export default function MembersPage() {
   });
 
   const onSubmit = (data: MemberFormData) => createMemberMutation.mutate(data);
+  const onEditSubmit = (data: MemberFormData) => {
+    if (editingMember) {
+      updateMemberMutation.mutate({ id: editingMember.id, data });
+    }
+  };
   const onProfessorSubmit = (data: ProfessorFormData) => upsertProfessorMutation.mutate(data);
+
+  // 멤버 수정 시작
+  const startEditMember = (member: Member) => {
+    setEditingMember(member);
+    editForm.reset({
+      name: member.name || "",
+      degree: member.degree || "masters",
+      email: member.email || "",
+      imageUrl: member.imageUrl || "",
+      homepage: member.homepage || "",
+      bio: member.bio || "",
+      joinedAt: member.joinedAt || "",
+      status: member.status || "current",
+    });
+    setMemberPreviewUrl(member.imageUrl || "");
+    setShowEditMember(true);
+  };
 
   // ====== 이미지 업로드 ======
   const handleUpload = async (file: File | null) => {
@@ -215,26 +269,71 @@ export default function MembersPage() {
   };
 
   const handleMemberUpload = async (file: File | null) => {
-  if (!file) return;
-  try {
-    setUploading(true);
-    const fd = new FormData();
-    fd.append("file", file);
-    const res = await fetch("/api/upload", { method: "POST", body: fd });
-    if (!res.ok) throw new Error("이미지 업로드 실패");
-    const { url } = await res.json();
-    form.setValue("imageUrl", url, { shouldDirty: true });
-    toast({ title: "업로드 성공", description: "멤버 프로필 사진이 저장되었습니다." });
-  } catch (e: any) {
-    toast({ title: "업로드 실패", description: e?.message || "업로드 중 오류", variant: "destructive" });
-  } finally {
-    setUploading(false);
-  }
-};
+    if (!file) return;
+    try {
+      setUploading(true);
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      if (!res.ok) throw new Error("이미지 업로드 실패");
+      const { url } = await res.json();
+      form.setValue("imageUrl", url, { shouldDirty: true });
+      toast({ title: "업로드 성공", description: "멤버 프로필 사진이 저장되었습니다." });
+    } catch (e: any) {
+      toast({ title: "업로드 실패", description: e?.message || "업로드 중 오류", variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleEditMemberUpload = async (file: File | null) => {
+    if (!file) return;
+    try {
+      setUploading(true);
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      if (!res.ok) throw new Error("이미지 업로드 실패");
+      const { url } = await res.json();
+      editForm.setValue("imageUrl", url, { shouldDirty: true });
+      setMemberPreviewUrl(url);
+      toast({ title: "업로드 성공", description: "멤버 프로필 사진이 저장되었습니다." });
+    } catch (e: any) {
+      toast({ title: "업로드 실패", description: e?.message || "업로드 중 오류", variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   // ====== Member Card ======
   const MemberCard = ({ member }: { member: Member }) => (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow relative">
+      {isAdmin && (
+        <div className="absolute top-2 right-2 flex gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600"
+            onClick={() => startEditMember(member)}
+            disabled={updateMemberMutation.isPending}
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
+            onClick={() => {
+              if (confirm(`${member.name} 멤버를 삭제하시겠습니까?`)) {
+                deleteMemberMutation.mutate(member.id);
+              }
+            }}
+            disabled={deleteMemberMutation.isPending}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
       <CardContent className="p-6">
         <div className="text-center">
           <img
@@ -256,24 +355,18 @@ export default function MembersPage() {
           <Badge variant="secondary" className="mb-2" data-testid={`badge-member-degree-${member.id}`}>
             {member.degree}
           </Badge>
-          <p className="text-sm text-gray-600 mb-3" data-testid={`text-member-duration-${member.id}`}>
-            {member.status && (
-              <Badge variant="outline" className="mb-2" data-testid={`badge-member-status-${member.id}`}>
-                {member.status}
-              </Badge>
-            )}
-            {/* 상태 배지 추가 */}
+          <div className="text-center space-y-2 mb-3">
             {member.status && (
               <Badge variant="outline" className="mb-2" data-testid={`badge-member-status-${member.id}`}>
                 {member.status}
               </Badge>
             )}
             {member.joinedAt && (
-              <p className="text-xs text-gray-500 mb-3" data-testid={`text-member-duration-${member.id}`}>
+              <p className="text-xs text-gray-500" data-testid={`text-member-duration-${member.id}`}>
                 {member.joinedAt}
               </p>
             )}
-          </p>
+          </div>
           {member.bio && (
             <p className="text-sm text-gray-600 mb-4 line-clamp-3" data-testid={`text-member-bio-${member.id}`}>
               {member.bio}
@@ -932,6 +1025,224 @@ export default function MembersPage() {
             </Button>
             <Button type="submit" form="professor-edit-form" disabled={upsertProfessorMutation.isPending} className="bg-blue-600 hover:bg-blue-700">
               {upsertProfessorMutation.isPending ? "저장 중..." : "저장"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 멤버 수정 Dialog */}
+      <Dialog open={showEditMember} onOpenChange={setShowEditMember}>
+        <DialogContent className="max-w-3xl p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-3">
+            <DialogTitle>멤버 정보 수정</DialogTitle>
+          </DialogHeader>
+
+          <div className="max-h-[70vh] overflow-y-auto px-6 pb-6">
+            <Form {...editForm}>
+              <form id="member-edit-form" onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={editForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>이름 *</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="멤버 이름을 입력하세요" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="degree"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>학위 과정 *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="학위 과정 선택" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="bachelors">학부생</SelectItem>
+                            <SelectItem value="masters">석사과정</SelectItem>
+                            <SelectItem value="phd">박사과정</SelectItem>
+                            <SelectItem value="other">기타</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="joinedAt"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>연구실 재학기간</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="2021.03 ~ 현재" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>이메일</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="email" placeholder="example@email.com" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="homepage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>홈페이지 URL</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="https://example.com" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>현재 상태</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="예: 재학중 / 네이버 인턴 중 / 졸업" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:col-span-2">
+                    <FormField
+                      control={editForm.control}
+                      name="imageUrl"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel>사진 URL</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="업로드를 하면 자동으로 채워져요" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="flex items-end">
+                      <label className="inline-flex items-center px-3 py-2 border rounded-md cursor-pointer">
+                        <Upload className="w-4 h-4 mr-2" />
+                        {uploading ? "업로드 중..." : "파일 업로드"}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleEditMemberUpload(e.target.files?.[0] || null)}
+                          disabled={uploading}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                  {(memberPreviewUrl || editForm.watch("imageUrl")) && (
+                    <div className="md:col-span-2 flex items-center gap-4">
+                      <img
+                        src={memberPreviewUrl || editForm.watch("imageUrl")}
+                        alt="미리보기"
+                        className="w-20 h-20 rounded-full object-cover border"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                      <span className="text-sm text-gray-600 break-all">
+                        {memberPreviewUrl || editForm.watch("imageUrl")}
+                      </span>
+                    </div>
+                  )}
+                  <FormField
+                    control={editForm.control}
+                    name="bio"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>소개</FormLabel>
+                        <FormControl>
+                          <div className="min-h-[200px]">
+                            <ReactQuill
+                              theme="snow"
+                              value={field.value || ""}
+                              onChange={field.onChange}
+                              modules={{
+                                toolbar: [
+                                  [{ header: [1, 2, 3, 4, 5, 6, false] }],
+                                  ["bold", "italic", "underline", "strike"],
+                                  [{ color: [] }, { background: [] }],
+                                  [{ list: "ordered" }, { list: "bullet" }],
+                                  [{ indent: "-1" }, { indent: "+1" }],
+                                  [{ align: [] }],
+                                  ["link"],
+                                  ["clean"],
+                                ],
+                              }}
+                              formats={[
+                                "header",
+                                "bold",
+                                "italic",
+                                "underline",
+                                "strike",
+                                "color",
+                                "background",
+                                "list",
+                                "bullet",
+                                "indent",
+                                "align",
+                                "link",
+                              ]}
+                              placeholder="멤버 소개를 입력하세요"
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </form>
+            </Form>
+          </div>
+
+          <div className="sticky bottom-0 w-full bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/70 border-t px-6 py-4 flex justify-end gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowEditMember(false);
+                setEditingMember(null);
+                editForm.reset();
+                setMemberPreviewUrl("");
+              }}
+            >
+              취소
+            </Button>
+            <Button
+              type="submit"
+              form="member-edit-form"
+              disabled={updateMemberMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {updateMemberMutation.isPending ? "수정 중..." : "수정"}
             </Button>
           </div>
         </DialogContent>

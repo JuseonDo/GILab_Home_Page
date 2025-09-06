@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -24,16 +24,17 @@ async def read_research_area(area_id: str, db: Session = Depends(database.get_db
 
 @router.post("/", response_model=schemas.ResearchAreaResponse)
 async def create_research_area(area: schemas.ResearchAreaCreate, db: Session = Depends(database.get_db), current_user: schemas.User = Depends(get_current_active_user)):
-    # Assuming only admin can create research areas
+    # Only admin can create research areas
     if not current_user.isAdmin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
     
     db_area = crud.create_research_area(db, area)
     return schemas.ResearchAreaResponse.from_orm(db_area)
 
+
 @router.put("/{area_id}", response_model=schemas.ResearchAreaResponse)
 async def update_research_area(area_id: str, area: schemas.ResearchAreaCreate, db: Session = Depends(database.get_db), current_user: schemas.User = Depends(get_current_active_user)):
-    # Assuming only admin can update research areas
+    # Only admin can update research areas
     if not current_user.isAdmin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
 
@@ -44,7 +45,7 @@ async def update_research_area(area_id: str, area: schemas.ResearchAreaCreate, d
 
 @router.delete("/{area_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_research_area(area_id: str, db: Session = Depends(database.get_db), current_user: schemas.User = Depends(get_current_active_user)):
-    # Assuming only admin can delete research areas
+    # Only admin can delete research areas
     if not current_user.isAdmin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
 

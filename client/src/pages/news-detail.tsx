@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Calendar, ArrowLeft, User } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 import type { News } from "@/shared/schema";
 
 export default function NewsDetailPage() {
@@ -9,6 +10,7 @@ export default function NewsDetailPage() {
   
   const { data: newsItem, isLoading, error } = useQuery<News>({
     queryKey: ["/news", id],
+    queryFn: () => apiRequest("GET", `/news/${id}`),
     enabled: !!id,
   });
 

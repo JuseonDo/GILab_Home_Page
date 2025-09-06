@@ -25,6 +25,12 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
+    host: '0.0.0.0',
+    allowedHosts: [
+      'localhost',
+      '127.0.0.1',
+      '.trycloudflare.com'
+    ],
     proxy: {
       '/api': {
         target: 'http://gilab_backend:8000',

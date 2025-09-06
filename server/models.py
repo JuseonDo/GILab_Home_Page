@@ -69,6 +69,7 @@ class Publication(Base):
         back_populates="publication",
         cascade="all, delete-orphan",
         passive_deletes=True,   # ✅ ondelete="CASCADE"와 함께 실제 삭제 전파
+        order_by="Author.displayOrder",  # 저자 순서대로 정렬
     )
 
 
@@ -144,7 +145,7 @@ Base = declarative_base()
 class Member(Base):
     __tablename__ = "members"
 
-    id = Column(String(36), primary_key=True)
+    id = Column(String(36), primary_key=True, default=gen_uuid_str)
     name = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, nullable=True)
     imageUrl = Column(String(1024), nullable=True)
