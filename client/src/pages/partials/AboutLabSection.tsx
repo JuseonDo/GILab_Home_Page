@@ -59,105 +59,17 @@ export default function AboutLabSection() {
         {!labInfo ? (
           <div className="h-64 bg-gray-100 rounded animate-pulse" />
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            {/* Lab Information */}
-            <div>
-              <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
-                About Our Lab
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                    {labInfo.labName}
-                  </h3>
-                  {labInfo.description && (
-                    <p className="text-gray-600 leading-relaxed">
-                      {labInfo.description}
-                    </p>
-                  )}
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-                  <div className="bg-white p-4 rounded-lg shadow-sm">
-                    <h4 className="font-medium text-gray-900 mb-2">Principal Investigator</h4>
-                    <p className="text-gray-600">
-                      {labInfo.principalInvestigator}
-                      {labInfo.piTitle && `, ${labInfo.piTitle}`}
-                    </p>
-                  </div>
-                  
-                  <div className="bg-white p-4 rounded-lg shadow-sm">
-                    <h4 className="font-medium text-gray-900 mb-2">Location</h4>
-                    <p className="text-gray-600">
-                      {labInfo.university}
-                      {labInfo.department && `, ${labInfo.department}`}
-                    </p>
-                    {labInfo.address && (
-                      <p className="text-sm text-gray-500 mt-1">{labInfo.address}</p>
-                    )}
-                  </div>
-                </div>
-
-                {labInfo.researchFocus && (
-                  <div className="mt-6 bg-white p-4 rounded-lg shadow-sm">
-                    <h4 className="font-medium text-gray-900 mb-2">Research Focus</h4>
-                    <p className="text-gray-600">{labInfo.researchFocus}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* PI Photo and Contact */}
-            <div className="text-center">
-              {labInfo.piPhoto && (
-                <div className="mb-6">
-                  <img
-                    src={labInfo.piPhoto}
-                    alt={labInfo.principalInvestigator}
-                    className="w-48 h-48 rounded-full object-cover mx-auto shadow-lg"
-                  />
-                </div>
-              )}
-              
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h4 className="font-semibold text-gray-900 mb-4">Contact Information</h4>
-                <div className="space-y-2 text-sm text-gray-600">
-                  {labInfo.contactEmail && (
-                    <p>
-                      <span className="font-medium">Email:</span>{" "}
-                      <a
-                        href={`mailto:${labInfo.contactEmail}`}
-                        className="text-blue-600 hover:underline"
-                      >
-                        {labInfo.contactEmail}
-                      </a>
-                    </p>
-                  )}
-                  {labInfo.contactPhone && (
-                    <p>
-                      <span className="font-medium">Phone:</span> {labInfo.contactPhone}
-                    </p>
-                  )}
-                  {labInfo.officeHours && (
-                    <p>
-                      <span className="font-medium">Office Hours:</span> {labInfo.officeHours}
-                    </p>
-                  )}
-                  {labInfo.website && (
-                    <p>
-                      <span className="font-medium">Website:</span>{" "}
-                      <a
-                        href={labInfo.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        {labInfo.website}
-                      </a>
-                    </p>
-                  )}
-                </div>
-              </div>
+          <div className="text-center">
+            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
+              About Our Lab
+            </h2>
+            <div className="max-w-3xl mx-auto">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                Generative Intelligence Lab
+              </h3>
+              <p className="text-gray-600 leading-relaxed text-lg">
+                Welcome to the Generative Intelligence Lab at Chungnam National University. Our lab performs cutting-edge research in applied problems in natural language processing.
+              </p>
             </div>
           </div>
         )}

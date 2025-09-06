@@ -72,7 +72,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p data-testid="text-copyright">&copy; 2024 Advanced Research Laboratory. All rights reserved.</p>
+          <p data-testid="text-copyright">&copy; 2025 Generative Intelligence AI Laboratory. All rights reserved.</p>
         </div>
       </div>
     </footer>

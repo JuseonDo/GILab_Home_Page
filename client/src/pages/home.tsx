@@ -3,10 +3,9 @@ import { Suspense, lazy, useLayoutEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 
-// 아래 3개 섹션은 그대로 코드 스플릿
+// 아래 2개 섹션은 그대로 코드 스플릿
 const PublicationsSection = lazy(() => import("./partials/PublicationsSection"));
 const RecentNewsSection   = lazy(() => import("./partials/RecentNewsSection"));
-const AboutLabSection     = lazy(() => import("./partials/AboutLabSection"));
 
 export default function HomePage() {
   // 히어로 첫 등장을 확실히 애니메이션하기 위한 트리거
@@ -123,10 +122,6 @@ export default function HomePage() {
         <RecentNewsSection />
       </Suspense>
 
-      {/* ===== About ===== */}
-      <Suspense fallback={<div className="py-20" />}>
-        <AboutLabSection />
-      </Suspense>
     </div>
   );
 }
