@@ -8,7 +8,7 @@
     "type": "conference",
     "abstract": "<p>Large language models (LLMs) have shown remarkable capabilities across various tasks, that are learned from massive amounts of text-based data. Although LLMs can control output sequence length, particularly in instruction-based settings, the internal mechanisms behind this control have been unexplored yet. In this study, we provide empirical evidence on how output sequence length information is encoded within the internal representations in LLMs. In particular, our findings show that multi-head attention mechanisms are critical in determining output sequence length, which can be adjusted in a disentangled manner. By scaling specific hidden units within the model, we can control the output sequence length without losing the informativeness of the generated text, thereby indicating that length information is partially disentangled from semantic information. Moreover, some hidden units become increasingly active as prompts become more length-specific, thus reflecting the model's internal awareness of this attribute. Our findings suggest that LLMs have learned robust and adaptable internal mechanisms for controlling output length without any external control.</p>",
     "pdfUrl": "https://arxiv.org/pdf/2507.20398",
-    "imageUrl": "/data/images/ef41f08f0ff846bb9f145f7f0f1c75ee.png",
+    "imageUrl": "/GILab_Home_Page/data/images/ef41f08f0ff846bb9f145f7f0f1c75ee.png",
     "displayOrder": 0,
     "authors": [
       {"name": "<strong><u>Sangjun Moon†</u></strong>", "homepage": "", "order": 0},
@@ -27,7 +27,7 @@
     "type": "conference",
     "abstract": "<p>Mixed Boolean-Arithmetic (MBA) obfuscation protects intellectual property by converting programs into forms that are more complex to analyze. However, MBA has been increasingly exploited by malware developers to evade detection and cause significant real-world problems. Traditional MBA deobfuscation methods often consider these expressions as part of a black box and overlook their internal semantic information. To bridge this gap, we propose a truth table, which is an automatically constructed semantic representation of an expression's behavior that does not rely on external resources. The truth table is a mathematical form that represents the output of expression for all possible combinations of input. We also propose a general and extensible guided MBA deobfuscation framework (gMBA) that modifies a Transformer-based neural encoderdecoder Seq2Seq architecture to incorporate this semantic guidance. Experimental results and in-depth analysis show that integrating expression semantics significantly improves performance and highlights the importance of internal semantic expressions in recovering obfuscated code to its original form.</p>",
     "pdfUrl": "https://aclanthology.org/2025.findings-acl.1127.pdf",
-    "imageUrl": "/data/images/3663609309f34f8ca61581afd7352d88.png",
+    "imageUrl": "/GILab_Home_Page/data/images/3663609309f34f8ca61581afd7352d88.png",
     "displayOrder": 1,
     "authors": [
       {"name": "Youjeong Noh", "homepage": "", "order": 0},
@@ -45,7 +45,7 @@
     "type": "conference",
     "abstract": "<p>This study investigates retrieval-augmented summarization by specifically examining the impact of exemplar summary lengths under length constraints, not covered by previous work. We propose a Diverse Length-aware Maximal Marginal Relevance (DL-MMR) algorithm to better control summary lengths. This algorithm combines the query relevance with diverse target lengths in retrieval-augmented summarization. Unlike previous methods that necessitate exhaustive exemplar-exemplar relevance comparisons using MMR, DL-MMR considers the exemplar target length as well and avoids comparing exemplars to each other, thereby reducing computational cost and conserving memory during the construction of an exemplar pool. Experimental results showed the effectiveness of DL-MMR, which considers length diversity, compared to the original MMR algorithm. DL-MMR additionally showed the effectiveness in memory saving of 781,513 times and computational cost reduction of 500,092 times, while maintaining the same level of informativeness.</p>",
     "pdfUrl": "https://aclanthology.org/2025.findings-naacl.134.pdf",
-    "imageUrl": "/data/images/28a8e6dedc5e4c5893b5d19553ef2703.png",
+    "imageUrl": "/GILab_Home_Page/data/images/28a8e6dedc5e4c5893b5d19553ef2703.png",
     "displayOrder": 2,
     "authors": [
       {"name": "<strong><u>Juseon Do†</u></strong>", "homepage": "", "order": 0},
@@ -64,7 +64,7 @@
     "type": "conference",
     "abstract": "<p>Extractive summarization can produce faithful summaries but often requires additional constraints such as a desired summary length. Traditional sentence compression models do not typically consider the constraints because of their restricted model abilities, which require model modifications for coping with them. To bridge this gap, we propose Instruction-based Compression (InstructCMP), an approach to the sentence compression task that can consider the length constraint through instructions by leveraging the zero-shot task-solving abilities of Large Language Models (LLMs). For this purpose, we created new evaluation datasets by transforming traditional sentence compression datasets into an instruction format. By using the datasets, we first reveal that the current LLMs still face challenges in accurately controlling the length for a compressed text. To address this issue, we propose an approach named \"length priming,\" that incorporates additional length information into the instructions without external resources. While the length priming effectively works in a zero-shot setting, a training dataset with the instructions would further improve the ability of length control. Thus, we additionally created a training dataset in an instruction format to fine-tune the model on it. Experimental results and analysis show that applying the length priming significantly improves performances of InstructCMP in both zero-shot and fine-tuning settings without the need of any model modifications.</p>",
     "pdfUrl": "https://aclanthology.org/2024.findings-acl.532.pdf",
-    "imageUrl": "/data/images/be2e8b45ddae493892f2c38e82095f35.png",
+    "imageUrl": "/GILab_Home_Page/data/images/be2e8b45ddae493892f2c38e82095f35.png",
     "displayOrder": 0,
     "authors": [
       {"name": "<strong><u>Juseon Do</u></strong>", "homepage": "", "order": 0},
@@ -82,7 +82,7 @@
     "type": "conference",
     "abstract": "<p>Recently, we can obtain a practical abstractive document summarization model by finetuning a pre-trained language model (PLM). Since the pre-training for PLMs does not consider summarization-specific information such as the target summary length, there is a gap between the pre-training and fine-tuning for PLMs in summarization tasks. To fill the gap, we propose a method for enabling the model to understand the summarization-specific information by predicting the summary length in the encoder and generating a summary of the predicted length in the decoder in fine-tuning. Experimental results on the WikiHow, NYT, and CNN/DM datasets showed that our methods improve ROUGE scores from BART by generating summaries of appropriate lengths. Further, we observed about 3.0, 1,5, and 3.1 point improvements for ROUGE-1, -2, and - L, respectively, from GSum on the WikiHow dataset. Human evaluation results also showed that our methods improve the informativeness and conciseness of summaries.</p>",
     "pdfUrl": "https://aclanthology.org/2023.findings-eacl.45.pdf",
-    "imageUrl": "/data/images/6bbedde0f12f41bc82d53282c3160de1.png",
+    "imageUrl": "/GILab_Home_Page/data/images/6bbedde0f12f41bc82d53282c3160de1.png",
     "displayOrder": 0,
     "authors": [
       {"name": "<strong>Jingun Kwon</strong>", "homepage": "", "order": 0},
@@ -99,7 +99,7 @@
     "type": "conference",
     "abstract": "<p>Hierarchical text classification (HTC) aims to assign the most relevant labels with the hierarchical structure to an input text. However, handling unseen labels with considering a label hierarchy is still an open problem for real-world applications because traditional HTC models employ a pre-defined label set. To deal with this problem, we propose a generation-based classifier that leverages a Seq2Seq framework to capture a label hierarchy and unseen labels explicitly. Because of no available social media datasets that target at HTC, we constructed a new (Blog) dataset using pairs of social media posts and their hierarchical topic labels. Experimental results on the Blog dataset showed the effectiveness of our generation-based classifier over state-of-the-art baseline models. Human evaluation results showed that the quality of generated unseen labels outperforms even the gold labels.</p>",
     "pdfUrl": "https://aclanthology.org/2023.findings-eacl.46.pdf",
-    "imageUrl": "/data/images/fc1efadec9a64495aea70f69552ad354.png",
+    "imageUrl": "/GILab_Home_Page/data/images/fc1efadec9a64495aea70f69552ad354.png",
     "displayOrder": 1,
     "authors": [
       {"name": "<strong>Jingun Kwon</strong>", "homepage": "", "order": 0},
@@ -117,7 +117,7 @@
     "type": "journal",
     "abstract": "<p>In social media, the frequent use of small images, called emojis, in posts has played a key role in recent communications. However, less attention has been paid to their positions in the given texts although users are known to carefully choose and place emojis that match their post. Exploring the position of emojis in texts is expected to enhance our understanding of the relationship between emojis and texts. In this paper, we propose a novel task of inserting an emoji at a position in a given tweet. We extend an emoji label prediction method considering the information of emoji positions, by jointly learning the emoji position in a tweet to predict the emoji label. Additional information on emoji position can improve the performance of emoji prediction. Human evaluations validate the existence of a suitable emoji position in a tweet. The proposed task makes tweets fancier and more natural. In addition, the emoji position can further improve the performance of irony detection compared to emoji label prediction. We also report the experimental results for the modified dataset, due to the problem of the original dataset for the first shared task to predict an emoji label in SemEval 2018.</p>",
     "pdfUrl": "https://www.jstage.jst.go.jp/article/jnlp/29/2/29_467/_article/-char/ja",
-    "imageUrl": "/data/images/c32d6d798b91496a81471c5f1683be93.png",
+    "imageUrl": "/GILab_Home_Page/data/images/c32d6d798b91496a81471c5f1683be93.png",
     "displayOrder": 0,
     "authors": [
       {"name": "<strong>Jingun Kwon</strong>", "homepage": "", "order": 0},
@@ -136,7 +136,7 @@
     "type": "conference",
     "abstract": "<p>Sentence extractive summarization shortens a document by selecting sentences for a summary while preserving its important contents. However, constructing a coherent and informative summary is difficult using a pre-trained BERT-based encoder since it is not explicitly trained for representing the information of sentences in a document. We propose a nested tree-based extractive summarization model on RoBERTa (NeRoBERTa), where nested tree structures consist of syntactic and discourse trees in a given document. Experimental results on the CNN/DailyMail dataset showed that NeRoBERTa outperforms baseline models in ROUGE. Human evaluation results also showed that NeRoBERTa achieves significantly better scores than the baselines in terms of coherence and yields comparable scores to the state-of-the-art models.</p>",
     "pdfUrl": "https://aclanthology.org/2021.emnlp-main.330.pdf",
-    "imageUrl": "/data/images/347375e9204248138fd04f592fd4bae5.png",
+    "imageUrl": "/GILab_Home_Page/data/images/347375e9204248138fd04f592fd4bae5.png",
     "displayOrder": 0,
     "authors": [
       {"name": "<strong>Jingun Kwon</strong>", "homepage": "", "order": 0},
@@ -154,7 +154,7 @@
     "type": "conference",
     "abstract": "<p>One way to enhance user engagement in search engines is to suggest interesting facts to the user. Although relationships between persons are important as a target for text mining, there are few effective approaches for extracting the interesting relationships between persons. We therefore propose a method for extracting interesting relationships between persons from natural language texts by focusing on their surprisingness. Our method first extracts all personal relationships from dependency trees for the texts and then calculates surprise scores for distributed representations of the extracted relationships in an unsupervised manner. The unique point of our method is that it does not require any labeled dataset with annotation for the surprising personal relationships. The results of the human evaluation show that the proposed method could extract more interesting relationships between persons from Japanese Wikipedia articles than a popularity-based baseline method. We demonstrate our proposed method as a chrome plugin on google search.</p>",
     "pdfUrl": "https://aclanthology.org/2021.eacl-demos.27v2.pdf",
-    "imageUrl": "/data/images/970b831ea8704881b60e3a53ac6b0ad0.png",
+    "imageUrl": "/GILab_Home_Page/data/images/970b831ea8704881b60e3a53ac6b0ad0.png",
     "displayOrder": 1,
     "authors": [
       {"name": "Hidetaka Kamigaito", "homepage": "", "order": 0},
@@ -172,7 +172,7 @@
     "type": "conference",
     "abstract": "<p>Recently, automatic trivia fact extraction has attracted much research interest. Modern search engines have begun to provide trivia facts as the information for entities because they can motivate more user engagement. In this paper, we propose a new unsupervised algorithm that automatically mines trivia facts for a given entity. Unlike previous studies, the proposed algorithm targets at a single Wikipedia article and leverages its hierarchical structure via top-down processing. Thus, the proposed algorithm offers two distinctive advantages: it does not incur high computation time, and it provides a domain-independent approach for extracting trivia facts. Experimental results demonstrate that the proposed algorithm is over 100 times faster than the existing method which considers Wikipedia categories. Human evaluation demonstrates that the proposed algorithm can mine better trivia facts regardless of the target entity domain and outperforms the existing methods.</p>",
     "pdfUrl": "https://aclanthology.org/2020.coling-main.424.pdf",
-    "imageUrl": "/data/images/d9c30066cc054dda8356b5f0dfb7dd09.png",
+    "imageUrl": "/GILab_Home_Page/data/images/d9c30066cc054dda8356b5f0dfb7dd09.png",
     "displayOrder": 0,
     "authors": [
       {"name": "<strong>Jingun Kwon</strong>", "homepage": "", "order": 0},
@@ -190,7 +190,7 @@
     "type": "conference",
     "abstract": "<p>Small images of emojis have unique characteristics as additional information in understanding writers' intentions. They enable social media users to emphasize their emotions and to express gestural movements in their posts. In addition to emojis, kaomojis (emoticons or facemarks) also behave in a similar way. They are composed of a sequence of characters, which are popularized especially in Asian countries. Although both emojis and kaomojis fulfill similar functions and share the same meaning that can be clues in opinion mining or sentiment analysis, the previous researches have been biased to explore emojis and kaomojis separately. In this paper, we align emojis and kaomojis together as a single token in the Japanese context to offer a bridge between them. Specifically, we aim to judge whether emojis and kaomojis share the same meaning or are similar with each other. We assume that emojis and kaomojis are both a single word in order to obtain their linguistic information with the skip-gram model. Furthermore, we present a new approach to consider the appearances of emojis and kaomojis in themselves, meaning that we explore the information of their visually similar shapes. We regard both of them as a single image to take into account their visual information with the CNN model. We merge two different perspectives toward emojis and kaomojis by exploring their linguistic and visual information simultaneously on the same space. The experimental results showed that we can align an unlimited number of emojis and kaomojis together with their representations (embeddings), and adding the visual information to the linguistic information can improve their representations.</p>",
     "pdfUrl": "https://ieeexplore.ieee.org/document/8909533",
-    "imageUrl": "/data/images/2ddf2af4d5b24c2abc3e8414f43cce58.png",
+    "imageUrl": "/GILab_Home_Page/data/images/2ddf2af4d5b24c2abc3e8414f43cce58.png",
     "displayOrder": 0,
     "authors": [
       {"name": "<strong>Jingun Kwon</strong>", "homepage": "", "order": 0},
