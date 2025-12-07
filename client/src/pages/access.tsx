@@ -190,7 +190,7 @@ export default function AccessPage() {
                   dangerouslySetInnerHTML={{
                     __html:
                       labInfo?.officeHours ||
-                      "Monday - Friday: 9:00 AM - 6:00 PM<br />Saturday: 10:00 AM - 2:00 PM<br />Sunday: Closed",
+                      "Monday - Friday: 9:00 AM - 6:00 PM<br />Saturday: Closed<br />Sunday: Closed",
                   }}
                 />
               </div>
